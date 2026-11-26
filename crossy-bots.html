@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossy Bots · Laboratoire</title>
+<style>
+  :root {
+    --bg: #0e1620;
+    --panel: #15202c;
+    --panel-2: #1b2836;
+    --line: #26384b;
+    --text: #e7eef5;
+    --muted: #8fa4b9;
+    --accent: #3ad6c5;
+    --cyan: #00f5ff;
+    --magenta: #ff007f;
+    --danger: #ff3b5c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  button, input { font: inherit; color: inherit; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 2;
+    display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap;
+    padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .brand { font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 9px; }
+  .logo { width: 18px; height: 18px; border-radius: 4px; background: #f6f5ef; box-shadow: inset -4px -4px 0 #cfcdc2, 0 -4px 0 -1px #e8383d; }
+  .group { display: flex; align-items: center; gap: 8px; }
+  .group-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .seg { display: flex; background: #0f1a25; border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 3px; flex-wrap: wrap; }
+  .seg button {
+    background: transparent; border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-weight: 600; color: #c4d2df;
+  }
+  .seg button:hover { background: #1d2c3c; }
+  .seg button.active { background: var(--accent); color: #062a26; }
+  #views button.active[data-view="robot"] { background: var(--magenta); color: #fff; }
+  #views button.active[data-view="overlay"] { background: var(--cyan); color: #04262a; }
+  kbd { font: 600 11px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+
+  /* ---------- layout ---------- */
+  .layout { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: 0; }
+  .stage { position: relative; min-height: 420px; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .help {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    background: rgba(10, 18, 28, .72); padding: 5px 12px; border-radius: 999px;
+    color: #cfdbe7; font-size: 12px; white-space: nowrap; pointer-events: none;
+  }
+  .panel {
+    background: var(--panel); border-left: 1px solid var(--line);
+    overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .card h2 { margin: 0 0 9px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  .card h2 span { color: var(--accent); text-transform: none; letter-spacing: 0; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .btn-row button, .card > button {
+    background: #22344a; border: 1px solid #2f4862; border-radius: 7px; padding: 6px 11px; cursor: pointer; font-weight: 600;
+  }
+  .btn-row button:hover, .card > button:hover { border-color: #4b6b8b; }
+  .btn-row button.active { background: var(--accent); color: #062a26; border-color: var(--accent); }
+  button.primary { background: #ff9a3c !important; color: #2b1300; border-color: #ff9a3c !important; }
+  button:disabled { opacity: .5; cursor: default; }
+  .seed { display: flex; align-items: center; gap: 6px; color: var(--muted); margin-left: auto; }
+  input[type=number] { width: 74px; background: #0f1a25; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 9px; cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 16px; height: 16px; }
+  dl.tm { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; }
+  dl.tm dt { color: var(--muted); }
+  dl.tm dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  #mode-info { margin: 0 0 8px; color: #cad7e3; }
+  .legend { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+  .bench-opts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .bench-opts label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+  #bench-progress { margin: 8px 0; color: var(--muted); font-size: 12px; min-height: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 3px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .stage { height: 62vh; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); }
+    .help { white-space: normal; text-align: center; width: calc(100% - 32px); }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo"></span>Crossy Bots</div>
+  <div class="group"><span class="group-label">Mode</span><nav class="seg" id="tabs" aria-label="Mode de jeu"></nav></div>
+  <div class="group"><span class="group-label">Vue <kbd>V</kbd></span>
+    <nav class="seg" id="views" aria-label="Vue">
+      <button data-view="game">Vision du Jeu</button>
+      <button data-view="overlay">Vision Superposée</button>
+      <button data-view="robot">Vision du Robot</button>
+    </nav>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <canvas id="game" aria-label="Zone de jeu"></canvas>
+    <div class="help" id="help">Flèches ou ZQSD : se déplacer · Espace : attendre · Entrée : rejouer · P : pause · V : vue</div>
+  </section>
+
+  <aside class="panel">
+    <section class="card">
+      <h2>Vitesse</h2>
+      <div class="btn-row" id="speed-row">
+        <button data-speed="1" class="active">x1</button>
+        <button data-speed="2">x2</button>
+        <button data-speed="5">x5</button>
+        <button id="btn-pause">Pause</button>
+        <button id="btn-step">Pas-à-pas</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="btn-row">
+        <button id="btn-replay" class="primary">Rejouer</button>
+        <label class="seed">Graine <input id="seed" type="number" min="0" step="1" value="1"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="chk-newseed" checked> Nouvelle graine à chaque partie (bots)</label>
+    </section>
+
+    <section class="card">
+      <h2>Télémétrie <span id="tm-mode"></span></h2>
+      <dl class="tm">
+        <dt>Score</dt><dd id="tm-score">0</dd>
+        <dt>Meilleur score</dt><dd id="tm-best">0</dd>
+        <dt>Tick</dt><dd id="tm-tick">0</dd>
+        <dt>Profondeur d'anticipation</dt><dd id="tm-depth">—</dd>
+        <dt>Chemins simulés</dt><dd id="tm-paths">—</dd>
+        <dt>Chemins élagués</dt><dd id="tm-pruned">—</dd>
+        <dt>Temps de décision</dt><dd id="tm-ms">—</dd>
+        <dt>Phase</dt><dd id="tm-phase">—</dd>
+        <dt>Coup envisagé</dt><dd id="tm-action">—</dd>
+        <dt>Prédictions vérifiées</dt><dd id="tm-check">—</dd>
+        <dt>Vue</dt><dd id="tm-view">—</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Ce mode</h2>
+      <p id="mode-info"></p>
+      <div class="legend">
+        <div><i style="background:rgba(255,59,92,.6)"></i>Cases mortelles / zones de collision</div>
+        <div><i style="background:#00f5ff"></i>Chemins explorés (v3, v4)</div>
+        <div><i style="background:#ff007f"></i>Meilleur chemin retenu</div>
+        <div><i style="background:rgba(140,255,190,.45)"></i>Plateformes sûres (rondins, nénuphars)</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Banc d'essai</h2>
+      <p class="muted">Joue N parties par bot sur les mêmes graines (1 à N), sans affichage, puis compare.</p>
+      <div class="bench-opts">
+        <label>Parties par bot <input id="bench-n" type="number" min="1" max="50" value="8"></label>
+        <label>Ticks max <input id="bench-ticks" type="number" min="50" max="5000" value="800"></label>
+      </div>
+      <button id="bench-run">Lancer le banc d'essai</button>
+      <div id="bench-progress"></div>
+      <table id="bench-table">
+        <thead><tr><th>Bot</th><th>Score moyen</th><th>Morts</th><th>Ticks moyens</th><th>Max</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </aside>
+</main>
+
+<script>
+'use strict';
+
+/* =====================================================================
+ * Configuration — every gameplay constant lives here.
+ * Units: positions in cells, speeds in cells per tick, time in ticks.
+ * ===================================================================== */
+const CFG = Object.freeze({
+  COLS: 9,               // playable columns 0..8
+  CENTER: 4,             // centre column (bot tie-breaker)
+  EXTRA: 8,              // decorative (non-playable) columns drawn on each side
+  BLOCK: 6,              // rows per biome block
+  LAG: 4,                // camera: the player may stand at most LAG rows behind its best row
+  CREEP: 7,              // camera also creeps forward one row every CREEP ticks...
+  CREEP_OFFSET: 6,       // ...starting CREEP_OFFSET rows behind the start line
+  HIT_HALF: 0.3,         // half width of the player hitbox (vehicles / trains)
+  BODY_SHRINK: 0.06,     // vehicle hitbox shrink at each end
+  ROAD_SPEEDS: [0.25, 0.5, 0.75, 1.0],   // vehicle speeds (cells per tick)
+  LOG_SPEEDS: [0.25, 0.5, 0.75],         // log speeds (cells per tick)
+  TRAIN_SPEED: 3,        // cells per tick
+  TRAIN_LEN: 13,         // cells
+  TRAIN_WARN: 5,         // ticks the warning light blinks before the train enters the drawn area
+});
+// Ticks a train needs to cross the whole drawn lane.
+const TRAIN_CROSS = Math.ceil((CFG.COLS + 2 * CFG.EXTRA + CFG.TRAIN_LEN + 2) / CFG.TRAIN_SPEED);
+const DEBUG = true;      // enables prediction / snapshot assertions
+
+const ACT = Object.freeze({ F: 0, W: 1, L: 2, R: 3, B: 4 });
+const ACTIONS = [ACT.F, ACT.W, ACT.L, ACT.R, ACT.B];   // search order (Forward first)
+const ACTION_LABELS = ['Avancer', 'Attendre', 'Gauche', 'Droite', 'Reculer'];
+const DX = [0, 0, -1, 1, 0];
+const DY = [1, 0, 0, 0, -1];
+const CAUSE_LABELS = {
+  vehicle: 'Percuté par un véhicule',
+  train: 'Percuté par un train',
+  water: "Tombé à l'eau",
+  edge: 'Sorti de la carte',
+  camera: 'Rattrapé par la caméra',
+};
+
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, k) => a + (b - a) * k;
+
+/* =====================================================================
+ * Seeded randomness. Nothing in gameplay uses Math.random().
+ * ===================================================================== */
+function hash3(a, b, c) {
+  let h = Math.imul((a >>> 0) ^ 0x9e3779b9, 0x85ebca6b);
+  h ^= h >>> 15; h = Math.imul(h ^ (b | 0), 0xc2b2ae35);
+  h ^= h >>> 13; h = Math.imul(h ^ (c | 0), 0x27d4eb2f);
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const VEHICLE_COLORS = ['#e63946', '#f4a261', '#2a9d8f', '#457b9d', '#9b5de5', '#f15bb5', '#00a6e0', '#f2c80f', '#6ab023'];
+
+/* =====================================================================
+ * World — deterministic rows derived from (seed, rowIndex) only.
+ *
+ * Row types: grass (trees/rocks), road (cars/trucks), river (logs or
+ * static lily pads), rail (trains). Moving lanes are periodic: segment i
+ * has its left edge at  phase + off_i + v * t  (mod S). All phases and
+ * speeds are multiples of 0.25, so positions are exact in floating point.
+ * The lane functions below are the only source of truth: stateAt() (used
+ * by both renderers) and the Simulator (used by the engine and the bots)
+ * are both built on them.
+ * ===================================================================== */
+class World {
+  constructor(seed) {
+    this.seed = seed >>> 0;
+    this.kinds = new Map();
+    this.treeOk = new Map();
+    this.rows = new Map();
+    this.riverParity = hash3(this.seed, 99991, 3) & 1;
+  }
+
+  rng(a, salt) { return mulberry32(hash3(this.seed, a, salt)); }
+
+  /** Biome kind of a row: grass | forest | road | river | rail. */
+  kindOf(y) {
+    let k = this.kinds.get(y);
+    if (k === undefined) { k = this._computeKind(y); this.kinds.set(y, k); }
+    return k;
+  }
+  /** Gameplay type (forest is grass with denser trees). */
+  typeOf(y) { const k = this.kindOf(y); return k === 'forest' ? 'grass' : k; }
+
+  _computeKind(y) {
+    if (y < 2) return 'grass';                      // start area and everything behind it
+    const b = Math.floor(y / CFG.BLOCK), local = y - b * CFG.BLOCK;
+    if (local === 0) return 'grass';                // a breather row at the start of each block
+    const r = this.rng(b, 11);
+    const p = r();
+    let len = 2 + Math.floor(r() * 4);              // 2..5 biome rows in this block
+    let biome;
+    if (b === 0) { biome = 'road'; len = Math.min(len, 3); }
+    else if (b < 3) biome = p < 0.55 ? 'road' : p < 0.88 ? 'river' : 'forest';
+    else biome = p < 0.36 ? 'road' : p < 0.64 ? 'river' : p < 0.82 ? 'rail' : 'forest';
+    if (biome === 'rail') len = 1 + Math.floor(r() * 2);
+    else if (biome === 'river') len = Math.min(len, 4);
+    return local <= len ? biome : 'grass';
+  }
+
+  /**
+   * Trees never appear on two consecutive grass rows, nor on the bank right
+   * after a river (the landing spot of a log ride), so the map cannot wall itself in.
+   */
+  treesAllowed(y) {
+    let ok = this.treeOk.get(y);
+    if (ok !== undefined) return ok;
+    if (this.typeOf(y) !== 'grass' || y === 0 || y === 1 || y < -12 || this.typeOf(y - 1) === 'river') ok = false;
+    else ok = !(this.typeOf(y - 1) === 'grass' && this.treesAllowed(y - 1));
+    this.treeOk.set(y, ok);
+    return ok;
+  }
+
+  row(y) {
+    let row = this.rows.get(y);
+    if (!row) { row = this._buildRow(y); this.rows.set(y, row); }
+    return row;
+  }
+
+  _buildRow(y) {
+    const kind = this.kindOf(y), type = kind === 'forest' ? 'grass' : kind;
+    const r = this.rng(y, 23);
+    const d = clamp(y / 220, 0, 1);                 // difficulty ramp
+    const row = { y, type, kind, v: 0, S: 1, phase: 0, segs: null, trees: null, pads: null, train: null };
+
+    if (type === 'grass') {
+      const width = CFG.COLS + 2 * CFG.EXTRA;
+      const trees = new Uint8Array(width);          // 0 empty, 1 tree, 2 rock
+      for (let i = 0; i < width; i++) {
+        const c = i - CFG.EXTRA;
+        if (c >= 0 && c < CFG.COLS) continue;
+        if (r() < 0.55) trees[i] = r() < 0.85 ? 1 : 2;   // dense decorative edges
+      }
+      if (this.treesAllowed(y)) {
+        const maxN = kind === 'forest' ? 4 : 3;
+        const p = (kind === 'forest' ? 0.34 : 0.16) + 0.08 * d;
+        let n = 0;
+        for (let c = 0; c < CFG.COLS; c++) {
+          if (n < maxN && r() < p) { trees[c + CFG.EXTRA] = r() < 0.75 ? 1 : 2; n++; }
+        }
+      }
+      row.trees = trees;
+    } else if (type === 'road') {
+      const dir = r() < 0.5 ? 1 : -1;
+      const maxIdx = Math.min(3, 1 + Math.floor(d * 3 + r() * 1.5));
+      row.v = dir * CFG.ROAD_SPEEDS[Math.floor(r() * (maxIdx + 1))];
+      // Regular spacing: multiple of 6 or 12 cells. Fast lanes stay sparse: at
+      // >= 0.75 cells/tick a dense lane (swept length close to S/2) can become
+      // impossible to cross when stacked with other lanes of the same velocity.
+      const fast = Math.abs(row.v) >= 0.75;
+      row.S = fast || r() < 0.5 ? 12 : 6;
+      row.segs = [];
+      if (row.S === 6) {
+        row.segs.push({ off: 0, len: r() < 0.3 ? 2 : 1 });
+      } else {
+        const two = r() < 0.45 + 0.35 * d;
+        for (let i = 0; i < (two ? 2 : 1); i++) {
+          const u = r();
+          const len = two ? (fast || u < 0.6 ? 1 : 2) : (u < 0.45 ? 1 : u < 0.75 ? 2 : 3);
+          row.segs.push({ off: i * 6, len });
+        }
+      }
+      for (const s of row.segs) {
+        s.kind = s.len === 1 ? 'car' : 'truck';
+        s.color = VEHICLE_COLORS[Math.floor(r() * VEHICLE_COLORS.length)];
+      }
+      row.phase = Math.floor(r() * row.S * 4) / 4;
+    } else if (type === 'river') {
+      const between = this.typeOf(y - 1) === 'river' && this.typeOf(y + 1) === 'river';
+      if (between && y % 2 === 0 && r() < 0.45) {
+        // Static lily pads (never two pad rows in a row).
+        const pads = new Uint8Array(CFG.COLS);
+        let n = 0;
+        for (let c = 0; c < CFG.COLS; c++) if (r() < 0.45) { pads[c] = 1; n++; }
+        while (n < 3) { const c = Math.floor(r() * CFG.COLS); if (!pads[c]) { pads[c] = 1; n++; } }
+        row.pads = pads;
+      } else {
+        const dir = ((y + this.riverParity) & 1) ? 1 : -1;   // consecutive rivers alternate
+        const nSpeeds = Math.min(3, 2 + Math.floor(d * 2));
+        row.v = dir * CFG.LOG_SPEEDS[Math.floor(r() * nSpeeds)];
+        row.S = 5 + Math.floor(r() * 3) + (d > 0.5 && r() < 0.5 ? 1 : 0);
+        const len = clamp(2 + Math.floor(r() * 2.2 - d), 2, row.S - 2);
+        row.segs = [{ off: 0, len, kind: 'log' }];
+        row.phase = Math.floor(r() * row.S * 4) / 4;
+      }
+    } else if (type === 'rail') {
+      const P = Math.max(TRAIN_CROSS + CFG.TRAIN_WARN + 6, 34 + Math.floor(r() * 18) - Math.floor(d * 10));
+      row.train = { P, off: Math.floor(r() * P), dir: r() < 0.5 ? 1 : -1 };
+    }
+    return row;
+  }
+
+  /* ---------- lane geometry (pure functions of time) ---------- */
+
+  /** [lo, hi] span of train cycle k at time tau (unbounded line; far away outside its window). */
+  trainSpan(tr, tau, k) {
+    const dt = tau - (tr.off + k * tr.P);
+    if (tr.dir > 0) { const hi = -CFG.EXTRA - 0.5 + CFG.TRAIN_SPEED * dt; return [hi - CFG.TRAIN_LEN, hi]; }
+    const lo = CFG.COLS - 0.5 + CFG.EXTRA - CFG.TRAIN_SPEED * dt;
+    return [lo, lo + CFG.TRAIN_LEN];
+  }
+
+  /** True while the warning light of a rail row blinks. */
+  trainWarn(row, tau) {
+    const tr = row.train;
+    const k0 = Math.floor((tau - tr.off) / tr.P);
+    for (let k = k0; k <= k0 + 1; k++) {
+      const T = tr.off + k * tr.P;
+      if (tau >= T - CFG.TRAIN_WARN && tau < T + TRAIN_CROSS) return true;
+    }
+    return false;
+  }
+
+  /** All moving / platform segments of a row at time tau within [xmin, xmax]. */
+  segmentsAt(row, tau, xmin, xmax, out) {
+    if (row.segs) {
+      for (const s of row.segs) {
+        const base = row.phase + s.off + row.v * tau - 0.5;
+        const k = Math.floor((xmin - s.len - base) / row.S);
+        for (let lo = base + k * row.S; lo <= xmax; lo += row.S) {
+          if (lo + s.len >= xmin) out.push({ lo, hi: lo + s.len, kind: s.kind, color: s.color, len: s.len, v: row.v });
+        }
+      }
+    }
+    if (row.pads) {
+      for (let c = 0; c < CFG.COLS; c++) if (row.pads[c]) out.push({ lo: c - 0.5, hi: c + 0.5, kind: 'pad', len: 1, v: 0 });
+    }
+    if (row.train) {
+      const tr = row.train, k0 = Math.floor((tau - tr.off) / tr.P);
+      for (let k = k0 - 1; k <= k0 + 1; k++) {
+        const sp = this.trainSpan(tr, tau, k);
+        if (sp[1] >= xmin && sp[0] <= xmax) out.push({ lo: sp[0], hi: sp[1], kind: 'train', len: CFG.TRAIN_LEN, dir: tr.dir, v: tr.dir * CFG.TRAIN_SPEED });
+      }
+    }
+    return out;
+  }
+
+  /** Does a log cover position x at integer tick t? */
+  logSupport(row, x, t) {
+    for (const s of row.segs) {
+      const base = row.phase + s.off + row.v * t - 0.5;
+      const lo = base + Math.floor((x - base) / row.S) * row.S;   // nearest copy with lo <= x
+      if (x <= lo + s.len) return true;
+    }
+    return false;
+  }
+
+  /** Does any vehicle sweep through the player hitbox at x during tick t -> t+1? */
+  roadHit(row, x, t) {
+    const p0 = x - CFG.HIT_HALF, p1 = x + CFG.HIT_HALF, v = row.v, S = row.S, sh = CFG.BODY_SHRINK;
+    for (const s of row.segs) {
+      const e0 = row.phase + s.off + v * t - 0.5;
+      const a = Math.min(e0, e0 + v) + sh;           // swept interval [a, a + w] (+ k*S)
+      const w = s.len + Math.abs(v) - 2 * sh;
+      const lo = a + Math.floor((p1 - a) / S) * S;   // copy with lo <= p1
+      if ((lo < p1 && lo + w > p0) || (lo - S + w > p0)) return true;
+    }
+    return false;
+  }
+
+  /** Does a train sweep through the player hitbox at x during tick t -> t+1? */
+  trainHit(row, x, t) {
+    const tr = row.train, p0 = x - CFG.HIT_HALF, p1 = x + CFG.HIT_HALF, sh = CFG.BODY_SHRINK;
+    const k0 = Math.floor((t - tr.off) / tr.P);
+    for (let k = k0 - 1; k <= k0 + 1; k++) {
+      const a = this.trainSpan(tr, t, k), b = this.trainSpan(tr, t + 1, k);
+      const lo = Math.min(a[0], b[0]) + sh, hi = Math.max(a[1], b[1]) - sh;
+      if (hi > p0 && lo < p1) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Snapshot of the world at time t (may be fractional for smooth rendering).
+   * With withCells, each row also gets an occupancy code per playable cell:
+   * 0 ground, 1 obstacle, 2 vehicle, 3 train, 4 water, 5 platform (log / pad).
+   */
+  stateAt(t, yMin, yMax, withCells) {
+    const rows = [];
+    for (let y = yMin; y <= yMax; y++) {
+      const row = this.row(y);
+      const segs = this.segmentsAt(row, t, -CFG.EXTRA - 1, CFG.COLS + CFG.EXTRA, []);
+      const entry = { y, type: row.type, row, segs, warn: row.train ? this.trainWarn(row, t) : false };
+      if (withCells) {
+        const cells = new Uint8Array(CFG.COLS);
+        for (let c = 0; c < CFG.COLS; c++) {
+          let code = row.type === 'river' ? 4 : 0;
+          if (row.trees && row.trees[c + CFG.EXTRA]) code = 1;
+          for (const s of segs) {
+            if (c >= s.lo && c <= s.hi) code = s.kind === 'train' ? 3 : (s.kind === 'log' || s.kind === 'pad') ? 5 : 2;
+          }
+          cells[c] = code;
+        }
+        entry.cells = cells;
+      }
+      rows.push(entry);
+    }
+    return { t, rows };
+  }
+}
+
+/* =====================================================================
+ * Simulator — the single forward model shared by the engine and bots.
+ * State: { x, y, t, maxY }. The future depends only on (x, y, t) except
+ * for the camera rule, which also uses maxY (see BotController.v4).
+ * ===================================================================== */
+class Simulator {
+  constructor(world) { this.world = world; }
+
+  /** Camera rule: follow the best row with a fixed lag, and creep forward over time. */
+  static cameraBottom(t, maxY) {
+    return Math.max(maxY - CFG.LAG, Math.floor(t / CFG.CREEP) - CFG.CREEP_OFFSET);
+  }
+
+  /** Resolve the player occupying x on row y during tick t -> t+1 (log carry included). */
+  land(x, y, t) {
+    const w = this.world, row = w.row(y);
+    if (x < -0.5 || x > CFG.COLS - 0.5) return { x, carry: 0, dead: true, cause: 'edge' };
+    if (row.type === 'river') {
+      if (row.pads) {
+        if (x < 0 || x > CFG.COLS - 1) return { x, carry: 0, dead: true, cause: 'edge' };
+        return row.pads[x] ? { x, carry: 0, dead: false, cause: null } : { x, carry: 0, dead: true, cause: 'water' };
+      }
+      if (!w.logSupport(row, x, t)) return { x, carry: 0, dead: true, cause: 'water' };
+      const cx = x + row.v;                          // the log carries the player sideways
+      if (cx < -0.5 || cx > CFG.COLS - 0.5) return { x: cx, carry: row.v, dead: true, cause: 'edge' };
+      return { x: cx, carry: row.v, dead: false, cause: null };
+    }
+    if (x < 0 || x > CFG.COLS - 1) return { x, carry: 0, dead: true, cause: 'edge' };
+    if (row.type === 'road' && w.roadHit(row, x, t)) return { x, carry: 0, dead: true, cause: 'vehicle' };
+    if (row.type === 'rail' && w.trainHit(row, x, t)) return { x, carry: 0, dead: true, cause: 'train' };
+    return { x, carry: 0, dead: false, cause: null };
+  }
+
+  /** Apply one action from state s. Returns the next state with dead / cause / blocked flags. */
+  step(s, a) {
+    const w = this.world;
+    // Waiting keeps the continuous position (riding a log); any grid action snaps to the nearest cell.
+    let nx = a === ACT.W ? s.x : Math.round(s.x + DX[a]) + 0;
+    let ny = s.y + DY[a], blocked = false;
+    const to = w.row(ny);
+    // Trees and rocks block movement (the player stays in place).
+    if (a !== ACT.W && to.trees && nx >= 0 && nx < CFG.COLS && to.trees[nx + CFG.EXTRA]) {
+      nx = s.x; ny = s.y; blocked = true;
+    }
+    const r = this.land(nx, ny, s.t);
+    const t1 = s.t + 1, maxY = ny > s.maxY ? ny : s.maxY;
+    let dead = r.dead, cause = r.cause;
+    if (!dead && ny < Simulator.cameraBottom(t1, maxY)) { dead = true; cause = 'camera'; }
+    return { x: r.x, y: ny, t: t1, maxY, dead, cause, blocked, carry: r.carry };
+  }
+
+  /** Would landing on integer cell (x, y) during tick t -> t+1 kill the player? (overlay) */
+  cellDeadly(x, y, t, maxY) {
+    if (y < Simulator.cameraBottom(t + 1, Math.max(maxY, y))) return true;
+    return this.land(x, y, t).dead;
+  }
+}
+
+/* =====================================================================
+ * GameEngine — owns one run: world, player state, rules, score.
+ * ===================================================================== */
+class GameEngine {
+  constructor(seed) { this.reset(seed); }
+
+  reset(seed) {
+    this.seed = seed >>> 0;
+    this.world = new World(this.seed);
+    this.sim = new Simulator(this.world);
+    this.x = CFG.CENTER; this.y = 0; this.t = 0; this.maxY = 0;
+    this.prevX = this.x; this.prevY = this.y;
+    this.dead = false; this.cause = null;
+    this.moved = false; this.carry = 0; this.facing = ACT.F; this.lastAction = ACT.W;
+    this.snapshotErrors = 0;
+  }
+
+  get state() { return { x: this.x, y: this.y, t: this.t, maxY: this.maxY }; }
+  get score() { return this.maxY; }
+  cameraBottom() { return Simulator.cameraBottom(this.t, this.maxY); }
+
+  step(a) {
+    if (this.dead) return null;
+    const res = this.sim.step(this.state, a);
+    this.prevX = this.x; this.prevY = this.y;
+    this.lastAction = a;
+    this.moved = a !== ACT.W && !res.blocked;
+    if (a !== ACT.W) this.facing = a;
+    this.x = res.x; this.y = res.y; this.t = res.t; this.maxY = res.maxY; this.carry = res.carry;
+    if (res.dead) { this.dead = true; this.cause = res.cause; }
+    if (DEBUG) this._crossCheck(res);
+    return res;
+  }
+
+  /** Independent check through the snapshot API: a live player must be consistent with stateAt(t). */
+  _crossCheck(res) {
+    if (res.dead) return;
+    const snap = this.world.stateAt(res.t, res.y, res.y, false).rows[0];
+    let ok = true;
+    if (snap.type === 'river') {
+      ok = snap.segs.some(s => res.x >= s.lo - 1e-9 && res.x <= s.hi + 1e-9);
+    } else if (snap.type === 'road' || snap.type === 'rail') {
+      ok = !snap.segs.some(s => res.x + CFG.HIT_HALF > s.lo + CFG.BODY_SHRINK && res.x - CFG.HIT_HALF < s.hi - CFG.BODY_SHRINK);
+    }
+    if (!ok) this.snapshotErrors++;
+    console.assert(ok, 'Snapshot mismatch at tick', res.t, res);
+  }
+}
+
+/* =====================================================================
+ * BotController — one method per bot version, all built on Simulator.
+ * Every decision returns { action, depth, depthReached, simulated,
+ * generated, pruned, ms, predicted, best (path), paths | edges }, built
+ * incrementally by generators (see BotController.search).
+ * Paths are lists of states; edges are [x0, y0, x1, y1, depth].
+ * ===================================================================== */
+const MAX_DRAWN_PATHS = 200;
+const MAX_EDGES_PER_LEVEL = 140;
+const V4_DEPTH = 15;
+const V4_NODE_CAP = 90000;      // hard bound on simulated nodes per decision
+const V3_BATCH = 125;           // DFS nodes between two yields of the v3 search
+
+class BotController {
+  /**
+   * Incremental search: returns a generator that yields the same mutable
+   * search-state object after every batch of work (one BFS level for v4,
+   * V3_BATCH DFS nodes for v3) and returns it, complete, at the end.
+   * The state always holds the current best path, its first action and live counters.
+   */
+  search(engine, version, collect) {
+    switch (version) {
+      case 1: return this.v1Gen(engine);
+      case 2: return this.v2Gen(engine);
+      case 3: return this.v3Gen(engine, collect);
+      default: return this.v4Gen(engine, collect);
+    }
+  }
+
+  /** Non-animated decision: runs the very same generator to completion. */
+  decide(engine, version, collect) {
+    const t0 = now();
+    const gen = this.search(engine, version, collect);
+    let r = gen.next();
+    while (!r.done) r = gen.next();
+    const d = r.value;
+    d.ms = now() - t0;
+    BotController.finalize(engine, d, version);
+    return d;
+  }
+
+  /** Attach the prediction of the next state, checked against reality after the engine steps. */
+  static finalize(engine, d, version) {
+    d.version = version;
+    d.done = true;
+    d.predicted = engine.sim.step(engine.state, d.action);
+  }
+
+  /** v1: Forward if t+1 is safe, otherwise Wait. */
+  *v1Gen(engine) {
+    const root = engine.state;
+    const f = engine.sim.step(root, ACT.F);
+    return { action: f.dead ? ACT.W : ACT.F, depth: 1, depthReached: 1, simulated: 1, generated: 1, pruned: 0, best: [root] };
+  }
+
+  /** v2: simulate all 5 actions at t+1, drop fatal ones, then apply a fixed priority. */
+  *v2Gen(engine) {
+    const s = engine.state, sim = engine.sim;
+    const res = ACTIONS.map(a => sim.step(s, a));
+    const safe = a => !res[a].dead;
+    let action = null;
+    if (safe(ACT.F) && !res[ACT.F].blocked) action = ACT.F;
+    if (action === null) {
+      let bestD = Infinity;
+      for (const a of [ACT.W, ACT.L, ACT.R]) {
+        if (!safe(a)) continue;
+        const dc = Math.abs(res[a].x - CFG.CENTER);
+        if (dc < bestD) { bestD = dc; action = a; }
+      }
+    }
+    if (action === null && safe(ACT.B)) action = ACT.B;
+    if (action === null) action = ACT.W;             // every move is fatal
+    return { action, depth: 1, depthReached: 1, simulated: 5, generated: 5, pruned: 0, best: [s] };
+  }
+
+  /**
+   * v3: exhaustive depth-5 search (5^5 = 3125 sequences), no pruning.
+   * Iterative DFS (path[k] = state after k steps) so it can yield every V3_BATCH nodes.
+   */
+  *v3Gen(engine, collect) {
+    const sim = engine.sim, root = engine.state, D = 5, C = CFG.CENTER;
+    const path = new Array(D + 1), next = new Array(D + 1).fill(0), acts = new Array(D);
+    path[0] = root;
+    const st = { depth: D, depthReached: D, simulated: 0, generated: 0, pruned: 0, best: [root], action: ACT.W, paths: collect ? [] : null };
+    let simulated = 0, bestKey = null, bestAct = ACT.W, bestPath = [];
+    const leaves = collect ? [] : null;
+    // Score tuple: (steps survived, final y, -distance to centre); first found wins ties.
+    const consider = (depth, n) => {
+      const k0 = depth, k1 = n.y, k2 = -Math.abs(n.x - C);
+      if (!bestKey || k0 > bestKey[0] || (k0 === bestKey[0] && (k1 > bestKey[1] || (k1 === bestKey[1] && k2 > bestKey[2])))) {
+        bestKey = [k0, k1, k2];
+        bestAct = acts[0];
+        bestPath = path.slice(1, depth + 1);
+      }
+    };
+    const publish = () => {
+      st.simulated = st.generated = simulated;
+      st.action = bestAct;
+      st.best = [root].concat(bestPath);
+      if (leaves) {
+        leaves.sort((p, q) => q.k - p.k);
+        if (leaves.length > MAX_DRAWN_PATHS) leaves.length = MAX_DRAWN_PATHS;
+        st.paths = leaves.map(l => l.pts);
+      }
+    };
+    let d = 0, sinceYield = 0;
+    while (d >= 0) {
+      if (next[d] >= 5) { d--; continue; }
+      const a = ACTIONS[next[d]++];
+      acts[d] = a;
+      const n = sim.step(path[d], a);
+      if (n.dead) {
+        simulated++;
+        consider(d, path[d]);
+      } else if (d + 1 === D) {
+        simulated++;
+        path[D] = n;
+        consider(D, n);
+        if (leaves) leaves.push({ k: n.y * 100 - Math.abs(n.x - C), pts: path.slice() });
+      } else {
+        path[d + 1] = n;
+        next[d + 1] = 0;
+        d++;
+      }
+      if (++sinceYield >= V3_BATCH) { sinceYield = 0; publish(); yield st; }
+    }
+    publish();
+    return st;
+  }
+
+  /**
+   * v4: breadth-first search to depth 15 with state deduplication.
+   * levels[d] holds the states reachable at tick t+d; `index` maps the (x, y)
+   * key to the state, so the structure is a Map keyed by t (the level) then x,y.
+   * Two paths reaching the same (x, y, t) share the same future, so only the
+   * best one is kept (higher cumulative progress). The camera rule also reads
+   * maxY; we evaluate it with the kept path's own maxY, so the path we finally
+   * execute is always truly valid (dedup can only lose alternatives).
+   * Yields after every level with the best path among the deepest states so far.
+   */
+  *v4Gen(engine, collect) {
+    const sim = engine.sim, root = engine.state, C = CFG.CENTER;
+    const levels = [[{ s: root, parent: -1, a: ACT.W, q: 0 }]];
+    const st = { depth: V4_DEPTH, depthReached: 0, simulated: 0, generated: 0, pruned: 0, best: [root], action: ACT.W, edges: collect ? [] : null };
+    let generated = 0, pruned = 0;
+    const publish = () => {
+      const depthReached = levels.length - 1;
+      const last = levels[depthReached];
+      // Best state at the deepest level reached: y, then centre, then early progress.
+      let bi = 0;
+      for (let i = 1; i < last.length; i++) {
+        const a = last[i].s, b = last[bi].s;
+        if (a.y > b.y || (a.y === b.y && (Math.abs(a.x - C) < Math.abs(b.x - C) ||
+            (Math.abs(a.x - C) === Math.abs(b.x - C) && last[i].q > last[bi].q)))) bi = i;
+      }
+      // Reconstruct the path through back-pointers.
+      const best = [];
+      let action = ACT.W;
+      for (let d = depthReached, i = bi; d >= 1; d--) {
+        const node = levels[d][i];
+        best.push(node.s);
+        if (d === 1) action = node.a;
+        i = node.parent;
+      }
+      best.push(root);
+      best.reverse();
+      st.depthReached = depthReached;
+      st.simulated = st.generated = generated;
+      st.pruned = pruned;
+      st.best = best;
+      st.action = action;
+    };
+    for (let d = 1; d <= V4_DEPTH && generated < V4_NODE_CAP; d++) {
+      const prev = levels[d - 1], cur = [], index = new Map();
+      for (let i = 0; i < prev.length; i++) {
+        const node = prev[i];
+        for (let j = 0; j < 5; j++) {
+          const a = ACTIONS[j];
+          const n = sim.step(node.s, a);
+          generated++;
+          if (n.dead) continue;
+          const key = (Math.round(n.x * 4) + 64) * 4096 + (n.y - root.y + 2048);
+          const q = node.q + n.y;                    // favours making progress early
+          const ex = index.get(key);
+          if (ex !== undefined) {
+            pruned++;
+            if (q > cur[ex].q) cur[ex] = { s: n, parent: i, a, q };
+            continue;
+          }
+          index.set(key, cur.length);
+          cur.push({ s: n, parent: i, a, q });
+        }
+      }
+      if (cur.length === 0) break;
+      levels.push(cur);
+      if (st.edges) {
+        // Tree drawn from the dedup levels (kept states only), capped per level.
+        const n = Math.min(cur.length, MAX_EDGES_PER_LEVEL);
+        for (let i = 0; i < n; i++) {
+          const p = prev[cur[i].parent].s, s = cur[i].s;
+          st.edges.push([p.x, p.y, s.x, s.y, d]);
+        }
+      }
+      publish();
+      yield st;
+    }
+    publish();
+    return st;
+  }
+}
+
+/** Step the engine with a bot decision and assert the prediction matched reality. */
+function applyDecision(engine, d) {
+  const res = engine.step(d.action);
+  const p = d.predicted;
+  const ok = !!res && p.x === res.x && p.y === res.y && p.dead === res.dead;
+  if (DEBUG) console.assert(ok, 'Bot prediction mismatch', p, res);
+  return ok;
+}
+
+/** Headless run of one seeded game. */
+function runGame(version, seed, maxTicks, bot) {
+  bot = bot || new BotController();
+  const eng = new GameEngine(seed);
+  let mismatches = 0, msTotal = 0, msMax = 0;
+  while (!eng.dead && eng.t < maxTicks) {
+    const d = bot.decide(eng, version, false);
+    msTotal += d.ms; if (d.ms > msMax) msMax = d.ms;
+    if (!applyDecision(eng, d)) mismatches++;
+  }
+  return { score: eng.score, dead: eng.dead, ticks: eng.t, cause: eng.cause, mismatches, msAvg: msTotal / Math.max(1, eng.t), msMax };
+}
+
+function summarize(version, results) {
+  const n = results.length;
+  return {
+    bot: 'v' + version,
+    scoreMoyen: +(results.reduce((s, r) => s + r.score, 0) / n).toFixed(1),
+    morts: results.filter(r => r.dead).length,
+    ticksMoyens: Math.round(results.reduce((s, r) => s + r.ticks, 0) / n),
+    scoreMax: Math.max(...results.map(r => r.score)),
+    ecartsPrediction: results.reduce((s, r) => s + (r.mismatches || 0), 0),
+  };
+}
+
+/** Synchronous benchmark (console / Node): N seeded games per bot on seeds 1..N. */
+function runBenchmarkSync(n = 8, maxTicks = 800) {
+  const bot = new BotController(), out = [];
+  for (let v = 1; v <= 4; v++) {
+    const res = [];
+    for (let s = 1; s <= n; s++) res.push(runGame(v, s, maxTicks, bot));
+    out.push(Object.assign(summarize(v, res), {
+      msMoyen: +(res.reduce((a, r) => a + r.msAvg, 0) / n).toFixed(3),
+      msMax: +Math.max(...res.map(r => r.msMax)).toFixed(2),
+    }));
+  }
+  if (typeof console.table === 'function') console.table(out);
+  return out;
+}
+
+/* =====================================================================
+ * Renderer — Canvas 2D. Two renderers share one camera and projection code:
+ *  - renderGame():  voxel look, fixed cavalier (oblique) projection;
+ *  - renderRobot(): flat top-down debug view of the logical grid.
+ * World axes: X = column (right), Y = row (forward), Z = height.
+ * Screen: sx = ox + (X + (Y - camY) * kx) * T,  sy = oy - ((Y - camY) * ky + Z) * T
+ * ===================================================================== */
+const KX = 0.3, KY = 0.78;      // cavalier projection used by the game view
+const CAM_ANCHOR = 3.4;         // the screen anchor row sits this far above the camera's death line
+const GZ = { grass: 0.12, road: 0, river: -0.14, rail: 0.04 };
+const GROUND = {
+  grass: ['#95d86d', '#8acd63'], forest: ['#80c75b', '#76bc53'],
+  road: ['#545b66', '#4d545e'], river: ['#4fb3f0', '#47a9e6'], rail: ['#8e8a84', '#86827c'],
+};
+const COL_CYAN = '#00f5ff', COL_MAGENTA = '#ff007f', COL_DANGER = '#ff3b5c';
+const GHOST_FADE_MS = 550;      // a replaced best path fades from magenta to cyan over this time
+const VIEWS = ['game', 'overlay', 'robot'];
+const VIEW_LABELS = { game: 'Vision du Jeu', overlay: 'Vision Superposée', robot: 'Vision du Robot' };
+
+class Renderer {
+  constructor(canvas) {
+    this.cv = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.camY = CAM_ANCHOR;
+    this.kx = KX; this.ky = KY;
+    this.shades = new Map();
+    this.sprites = new Map();   // cached static objects (trees, rocks), keyed per tile size
+    this.resize();
+  }
+
+  resize() {
+    const r = this.cv.getBoundingClientRect();
+    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.W = Math.max(240, r.width); this.H = Math.max(240, r.height);
+    this.cv.width = Math.round(this.W * this.dpr); this.cv.height = Math.round(this.H * this.dpr);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.Tg = clamp(Math.min(this.W / 19, this.H / 13), 20, 62);
+    this.T = this.Tg;
+    this.sprites.clear();
+  }
+
+  shade(hex, f) {
+    const key = hex + f;
+    let c = this.shades.get(key);
+    if (!c) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = clamp(Math.round(((n >> 16) & 255) * f), 0, 255);
+      const g = clamp(Math.round(((n >> 8) & 255) * f), 0, 255);
+      const b = clamp(Math.round((n & 255) * f), 0, 255);
+      c = `rgb(${r},${g},${b})`;
+      this.shades.set(key, c);
+    }
+    return c;
+  }
+
+  px(X, Y) { return this.ox + (X + (Y - this.camY) * this.kx) * this.T; }
+  py(Y, Z) { return this.oy - ((Y - this.camY) * this.ky + Z) * this.T; }
+
+  quad(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, fill) {
+    const c = this.ctx;
+    c.fillStyle = fill;
+    c.beginPath();
+    c.moveTo(this.px(x0, y0), this.py(y0, z0));
+    c.lineTo(this.px(x1, y1), this.py(y1, z1));
+    c.lineTo(this.px(x2, y2), this.py(y2, z2));
+    c.lineTo(this.px(x3, y3), this.py(y3, z3));
+    c.closePath();
+    c.fill();
+  }
+
+  tri(x0, y0, z0, x1, y1, z1, x2, y2, z2, fill) {
+    const c = this.ctx;
+    c.fillStyle = fill;
+    c.beginPath();
+    c.moveTo(this.px(x0, y0), this.py(y0, z0));
+    c.lineTo(this.px(x1, y1), this.py(y1, z1));
+    c.lineTo(this.px(x2, y2), this.py(y2, z2));
+    c.closePath();
+    c.fill();
+  }
+
+  /**
+   * Beveled voxel cuboid. Visible faces in this projection: top (lightest),
+   * front (mid tone) and right side (darkest), plus chamfers on the top edges
+   * and the front-right vertical edge for the rounded, chunky look.
+   */
+  box(x0, x1, y0, y1, z0, z1, color, topColor, bevel) {
+    const b = bevel !== undefined ? bevel : Math.min(0.06, (x1 - x0) * 0.22, (y1 - y0) * 0.22, (z1 - z0) * 0.3);
+    const top = topColor || this.shade(color, 1.16);
+    const side = this.shade(color, 0.68);
+    if (b <= 0.002) {
+      this.quad(x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, side);
+      this.quad(x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, color);
+      this.quad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, top);
+      return;
+    }
+    const zt = z1 - b;
+    this.quad(x1, y0 + b, z0, x1, y1, z0, x1, y1, zt, x1, y0 + b, zt, side);                 // right face
+    this.quad(x1 - b, y0, z0, x1, y0 + b, z0, x1, y0 + b, zt, x1 - b, y0, zt, this.shade(color, 0.84)); // vertical chamfer
+    this.quad(x0, y0, z0, x1 - b, y0, z0, x1 - b, y0, zt, x0, y0, zt, color);                 // front face
+    this.quad(x0, y0, zt, x1 - b, y0, zt, x1 - b, y0 + b, z1, x0, y0 + b, z1, this.shade(color, 1.07)); // front-top chamfer
+    this.quad(x1, y0 + b, zt, x1, y1, zt, x1 - b, y1, z1, x1 - b, y0 + b, z1, this.shade(color, 0.9));  // right-top chamfer
+    this.tri(x1 - b, y0, zt, x1, y0 + b, zt, x1 - b, y0 + b, z1, this.shade(color, 0.98));      // corner
+    this.quad(x0, y0 + b, z1, x1 - b, y0 + b, z1, x1 - b, y1, z1, x0, y1, z1, top);             // top face
+  }
+
+  ellipse(cx, cy, z, rx, ry, fill, stroke, notch) {
+    const c = this.ctx, n = 18;
+    c.beginPath();
+    let first = true;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      if (notch && a > 5.5) continue;               // small wedge cut out (lily pad notch)
+      const X = cx + Math.cos(a) * rx, Y = cy + Math.sin(a) * ry;
+      if (first) { c.moveTo(this.px(X, Y), this.py(Y, z)); first = false; } else c.lineTo(this.px(X, Y), this.py(Y, z));
+    }
+    if (notch) c.lineTo(this.px(cx, cy), this.py(cy, z));
+    c.closePath();
+    if (fill) { c.fillStyle = fill; c.fill(); }
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = 2; c.stroke(); }
+  }
+
+  /** Column range covering the screen for a given row. */
+  colRange(y) {
+    const T = this.T;
+    const lo = Math.floor(-this.ox / T - (y + 0.5 - this.camY) * this.kx) - 1;
+    const hi = Math.ceil((this.W - this.ox) / T - (y - 0.5 - this.camY) * this.kx) + 1;
+    return [lo, hi];
+  }
+
+  /** Shared camera: smoothly follow the engine's camera line (best row - LAG, or the creep). */
+  setupView(sc, robot) {
+    const target = sc.engine.cameraBottom() + CAM_ANCHOR;
+    this.camY = sc.snapCam ? target : this.camY + (target - this.camY) * (1 - Math.exp(-sc.dt * 5));
+    this.kx = robot ? 0 : KX;
+    this.ky = robot ? 1 : KY;
+    this.T = robot ? this.Tg * 0.86 : this.Tg;
+    this.oy = this.H * 0.74;
+    const rowPx = this.ky * this.T;
+    const above = this.oy / rowPx, below = (this.H - this.oy) / rowPx;
+    this.ox = this.W / 2 - (CFG.CENTER + ((above - below) / 2) * this.kx) * this.T;
+    return [Math.floor(this.camY - below) - 2, Math.ceil(this.camY + above) + 1];
+  }
+
+  render(sc) {
+    if (sc.view === 'robot') this.renderRobot(sc); else this.renderGame(sc);
+    this.drawHud(sc);
+  }
+
+  /* ================= game renderer (voxel / cavalier) ================= */
+
+  renderGame(sc) {
+    const ctx = this.ctx, eng = sc.engine, world = eng.world;
+    const [yMin, yMax] = this.setupView(sc, false);
+    ctx.fillStyle = '#16232f';
+    ctx.fillRect(0, 0, this.W, this.H);
+    // Only visible rows are fetched and drawn.
+    const rows = world.stateAt(sc.tau, yMin, yMax, false).rows;
+    // Painter's algorithm: flat ground first (back to front), then objects row by row, back to front.
+    for (let i = rows.length - 1; i >= 0; i--) this.drawGround(rows[i], sc.tau, world);
+    for (let i = rows.length - 1; i >= 0; i--) this.drawRowObjects(rows[i], sc, world);
+    this.drawDangerZone(eng, yMin);
+    this.drawEdges(yMin, yMax);
+    if (sc.view === 'overlay') {
+      if (sc.vision) this.drawDeadlyCells(sc.vision, world);
+      this.drawSearch(sc, world, false);
+      this.drawIntent(sc, world, false);
+    }
+  }
+
+  drawGround(r, tau, world) {
+    const y = r.y, row = r.row, gz = GZ[row.type];
+    const [xl, xh] = this.colRange(y);
+    const base = GROUND[row.kind][y & 1];          // every other row is slightly darker
+    const L = xl - 0.5, R = xh + 0.5;
+    this.quad(L, y - 0.5, gz, R, y - 0.5, gz, R, y + 0.5, gz, L, y + 0.5, gz, base);
+    // Vertical front face when the nearer row is lower (river banks, curbs).
+    const gzl = GZ[world.typeOf(y - 1)];
+    if (gzl < gz) this.quad(L, y - 0.5, gzl, R, y - 0.5, gzl, R, y - 0.5, gz, L, y - 0.5, gz, this.shade(base, 0.66));
+
+    if (row.type === 'grass') {
+      // Subtle checkered texture plus a light stripe along each row.
+      for (let X = xl + ((xl + y) & 1); X <= xh; X += 2) {
+        this.quad(X - 0.5, y - 0.5, gz + 0.001, X + 0.5, y - 0.5, gz + 0.001, X + 0.5, y + 0.5, gz + 0.001, X - 0.5, y + 0.5, gz + 0.001, 'rgba(255,255,255,0.05)');
+      }
+      this.quad(L, y + 0.36, gz + 0.002, R, y + 0.36, gz + 0.002, R, y + 0.44, gz + 0.002, L, y + 0.44, gz + 0.002, 'rgba(255,255,255,0.06)');
+    } else if (row.type === 'road') {
+      if (world.typeOf(y - 1) === 'road') {
+        for (let X = xl; X <= xh; X++) {
+          this.quad(X - 0.25, y - 0.53, 0.002, X + 0.25, y - 0.53, 0.002, X + 0.25, y - 0.47, 0.002, X - 0.25, y - 0.47, 0.002, 'rgba(255,255,255,0.7)');
+        }
+      }
+    } else if (row.type === 'river') {
+      const dir = row.v >= 0 ? 1 : -1;
+      for (let k = xl; k <= xh; k += 2) {
+        const ph = (((k * 1.7 + y * 2.3 + tau * 0.12 * dir) % 2) + 2) % 2;
+        const X = k + ph, Y = y - 0.3 + (((k * 7 + y * 3) % 5 + 5) % 5) * 0.14;
+        this.quad(X, Y, gz + 0.002, X + 0.45, Y, gz + 0.002, X + 0.45, Y + 0.05, gz + 0.002, X, Y + 0.05, gz + 0.002, 'rgba(255,255,255,0.28)');
+      }
+    } else if (row.type === 'rail') {
+      for (let X = xl; X <= xh; X++) {
+        this.box(X - 0.14, X + 0.14, y - 0.4, y + 0.4, gz, gz + 0.04, '#7a5436', '#8f6544', 0);
+      }
+      for (const off of [-0.24, 0.24]) this.box(L, R, y + off - 0.045, y + off + 0.045, gz + 0.04, gz + 0.1, '#8a939e', '#d3d9df', 0);
+    }
+  }
+
+  drawRowObjects(r, sc, world) {
+    const row = r.row, y = r.y, gz = GZ[row.type];
+    const [xl, xh] = this.colRange(y);
+    const items = [];
+    if (row.trees) {
+      const a = Math.max(xl, -CFG.EXTRA), b = Math.min(xh, CFG.COLS - 1 + CFG.EXTRA);
+      for (let c = a; c <= b; c++) {
+        const t = row.trees[c + CFG.EXTRA];
+        if (t) items.push([c - 0.4, t, c]);
+      }
+    }
+    for (const s of r.segs) items.push([s.lo, s.kind, s]);
+    if (row.train) { items.push([-1.5, 'signal', -1.2]); items.push([CFG.COLS + 0.1, 'signal', CFG.COLS + 0.2]); }
+    const p = sc.player;
+    if (p && p.row === y) items.push([p.x + 0.01, 'player', p]);
+    items.sort((u, v) => u[0] - v[0]);   // left to right within the row
+
+    // Logs and pads under a standing player sink slightly.
+    const standing = p && p.row === y && !p.dead && p.z < 0.05;
+    for (const it of items) {
+      const k = it[1];
+      if (k === 1) this.drawTree(it[2], y, gz, world);
+      else if (k === 2) this.drawRock(it[2], y, gz);
+      else if (k === 'car' || k === 'truck') this.drawVehicle(it[2], y, gz, row.v >= 0 ? 1 : -1);
+      else if (k === 'train') this.drawTrain(it[2], y, gz);
+      else if (k === 'log' || k === 'pad') {
+        const s = it[2];
+        const sink = standing && p.x >= s.lo - 0.05 && p.x <= s.hi + 0.05 ? -0.05 : 0;
+        if (k === 'log') this.drawLog(s, y, gz, sink); else this.drawPad(s, y, gz, sink);
+      }
+      else if (k === 'signal') this.drawSignal(it[2], y, gz, r.warn, sc.tau);
+      else if (k === 'player') this.drawPlayer(it[2], gz);
+    }
+  }
+
+  /**
+   * Static objects are pre-rendered once per tile size: in this affine
+   * projection an object only translates on screen, so a cached sprite is exact.
+   */
+  sprite(key, draw) {
+    const fullKey = key + '|' + this.T;
+    let s = this.sprites.get(fullKey);
+    if (!s) {
+      const T = this.T, w = Math.ceil(1.7 * T), h = Math.ceil(2.6 * T), ax = 0.8 * T, ay = 2.1 * T;
+      const cv = document.createElement('canvas');
+      cv.width = Math.ceil(w * this.dpr); cv.height = Math.ceil(h * this.dpr);
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      const saved = [this.ctx, this.ox, this.oy, this.camY];
+      this.ctx = ctx; this.ox = ax; this.oy = ay; this.camY = 0;
+      draw();
+      [this.ctx, this.ox, this.oy, this.camY] = saved;
+      s = { cv, w, h, ax, ay };
+      this.sprites.set(fullKey, s);
+    }
+    return s;
+  }
+
+  drawSprite(s, X, Y, Z) {
+    this.ctx.drawImage(s.cv, this.px(X, Y) - s.ax, this.py(Y, Z) - s.ay, s.w, s.h);
+  }
+
+  drawTree(c, y, gz, world) {
+    const variant = hash3(world.seed, y, c + 1000) & 3;
+    const s = this.sprite('tree' + variant, () => {
+      const tall = variant >= 2, wide = variant & 1;
+      this.box(-0.11, 0.11, -0.11, 0.11, 0, 0.26, '#8a5a35', '#a26d44', 0.04);                 // rounded trunk
+      const w0 = wide ? 0.4 : 0.34;
+      this.box(-w0, w0, -w0 + 0.02, w0 - 0.02, 0.26, 0.62, '#3e9b45', '#5cc15a', 0.09);        // layered foliage blobs
+      this.box(-w0 + 0.08, w0 - 0.08, -w0 + 0.1, w0 - 0.1, 0.62, 0.92, '#46a94c', '#6ccf62', 0.08);
+      if (tall) this.box(-0.17, 0.17, -0.15, 0.15, 0.92, 1.16, '#4fb653', '#7bda6b', 0.07);
+    });
+    this.drawSprite(s, c, y, gz);
+  }
+
+  drawRock(c, y, gz) {
+    const s = this.sprite('rock', () => {
+      this.box(-0.32, 0.28, -0.26, 0.22, 0, 0.24, '#959ca5', '#b8bec5', 0.07);
+      this.box(-0.18, 0.12, -0.12, 0.12, 0.24, 0.36, '#a2a9b1', '#c6cbd1', 0.05);
+    });
+    this.drawSprite(s, c, y, gz);
+  }
+
+  drawVehicle(s, y, gz, dir) {
+    const lo = s.lo + 0.05, hi = s.hi - 0.05, z0 = gz + 0.08;
+    const wheels = () => {
+      for (const wx of [lo + 0.14, hi - 0.34]) this.box(wx, wx + 0.2, y - 0.34, y - 0.28, gz, gz + 0.17, '#1e2228', '#3a3f47', 0.02);
+    };
+    if (s.kind === 'car') {
+      const w = hi - lo;
+      this.box(lo, hi, y - 0.3, y + 0.3, z0, z0 + 0.28, s.color, undefined, 0.07);
+      this.box(lo + w * 0.22, hi - w * 0.22, y - 0.24, y + 0.24, z0 + 0.28, z0 + 0.52, s.color, this.shade(s.color, 1.2), 0.05);
+      // lighter window band on the cabin
+      this.quad(lo + w * 0.26, y - 0.241, z0 + 0.32, hi - w * 0.26 - 0.03, y - 0.241, z0 + 0.32, hi - w * 0.26 - 0.03, y - 0.241, z0 + 0.45, lo + w * 0.26, y - 0.241, z0 + 0.45, '#cdeaf7');
+      wheels();
+    } else {
+      // Cab on the side the truck drives towards, cargo box behind it.
+      const cabL = dir > 0 ? hi - 0.8 : lo, cabR = dir > 0 ? hi : lo + 0.8;
+      const boxL = dir > 0 ? lo : lo + 0.86, boxR = dir > 0 ? hi - 0.86 : hi;
+      const drawCab = () => {
+        this.box(cabL, cabR, y - 0.3, y + 0.3, z0, z0 + 0.55, s.color, undefined, 0.07);
+        this.quad(cabL + 0.1, y - 0.301, z0 + 0.32, cabR - 0.12, y - 0.301, z0 + 0.32, cabR - 0.12, y - 0.301, z0 + 0.48, cabL + 0.1, y - 0.301, z0 + 0.48, '#cdeaf7');
+      };
+      const drawCargo = () => {
+        this.box(boxL, boxR, y - 0.33, y + 0.33, z0, z0 + 0.8, '#eceae3', '#fbfaf5', 0.05);
+        this.quad(boxL + 0.05, y - 0.331, z0 + 0.3, boxR - 0.08, y - 0.331, z0 + 0.3, boxR - 0.08, y - 0.331, z0 + 0.42, boxL + 0.05, y - 0.331, z0 + 0.42, s.color);
+      };
+      if (dir > 0) { drawCargo(); drawCab(); } else { drawCab(); drawCargo(); }
+      wheels();
+    }
+  }
+
+  drawTrain(s, y, gz) {
+    const n = Math.ceil(s.len / 3.25);
+    for (let i = 0; i < n; i++) {
+      const a = s.lo + i * 3.25, b = Math.min(s.hi, a + 3.1);
+      const loco = s.dir > 0 ? i === n - 1 : i === 0;
+      const col = loco ? '#2f3d4f' : '#d0463d';
+      this.box(a, b, y - 0.37, y + 0.37, gz + 0.08, gz + 0.95, col, undefined, 0.08);
+      this.quad(a + 0.05, y - 0.371, gz + 0.48, b - 0.1, y - 0.371, gz + 0.48, b - 0.1, y - 0.371, gz + 0.62, a + 0.05, y - 0.371, gz + 0.62, loco ? '#ffd34d' : '#f3efe6');
+      if (loco) {
+        // windshield at the front end
+        const fx0 = s.dir > 0 ? b - 0.7 : a + 0.15, fx1 = fx0 + 0.5;
+        this.quad(fx0, y - 0.372, gz + 0.68, fx1, y - 0.372, gz + 0.68, fx1, y - 0.372, gz + 0.85, fx0, y - 0.372, gz + 0.85, '#9fd6f0');
+      }
+    }
+  }
+
+  drawLog(s, y, gz, sink) {
+    const z0 = gz - 0.08 + sink, z1 = gz + 0.1 + sink, x0 = s.lo + 0.04, x1 = s.hi - 0.04;
+    this.box(x0, x1, y - 0.3, y + 0.3, z0, z1, '#8b5a32', '#a46e41', 0.06);
+    // lighter end ring on the visible end
+    this.quad(x1, y - 0.24, z0 + 0.02, x1, y + 0.24, z0 + 0.02, x1, y + 0.24, z1 - 0.06, x1, y - 0.24, z1 - 0.06, '#d9aa72');
+    this.quad(x1, y - 0.12, z0 + 0.05, x1, y + 0.12, z0 + 0.05, x1, y + 0.12, z1 - 0.09, x1, y - 0.12, z1 - 0.09, '#b98450');
+    for (let X = x0 + 0.5; X < x1 - 0.4; X += 0.85) {
+      this.quad(X, y - 0.24, z1 + 0.001, X + 0.05, y - 0.24, z1 + 0.001, X + 0.05, y + 0.24, z1 + 0.001, X, y + 0.24, z1 + 0.001, 'rgba(70,40,20,0.35)');
+    }
+  }
+
+  drawPad(s, y, gz, sink) {
+    const cx = (s.lo + s.hi) / 2;
+    this.ellipse(cx, y, gz + 0.015 + sink, 0.42, 0.38, '#2f8a3a', null, true);
+    this.ellipse(cx, y, gz + 0.04 + sink, 0.4, 0.36, '#4fb556', null, true);
+    this.ellipse(cx - 0.08, y + 0.05, gz + 0.041 + sink, 0.16, 0.13, 'rgba(255,255,255,0.12)');
+  }
+
+  drawSignal(X, y, gz, warn, tau) {
+    this.box(X - 0.05, X + 0.05, y + 0.28, y + 0.36, gz, gz + 1.05, '#3b4450', undefined, 0.01);
+    const on = warn && Math.floor(tau * 4) % 2 === 0;
+    this.box(X - 0.15, X + 0.15, y + 0.24, y + 0.38, gz + 1.05, gz + 1.34, '#2a3038', undefined, 0.03);
+    this.ellipse(X, y + 0.239, gz + 1.19, 0.09, 0.001, null);
+    this.quad(X - 0.1, y + 0.238, gz + 1.1, X + 0.1, y + 0.238, gz + 1.1, X + 0.1, y + 0.238, gz + 1.29, X - 0.1, y + 0.238, gz + 1.29, on ? '#ff3b3b' : '#5a2424');
+    if (on) this.ellipse(X, y + 0.24, gz + 1.19, 0.4, 0.22, 'rgba(255,60,60,0.28)');
+  }
+
+  /** Chunky blocky chicken: body, head, comb, beak, wings, feet; faces its last move. */
+  drawPlayer(p, gz) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalAlpha = p.opacity;
+    const sr = 0.3 * (1 - Math.min(0.45, Math.max(0, p.z) * 0.7));
+    if (p.z > -0.05) this.ellipse(p.x, p.y, gz + 0.004, sr, sr * 0.85, 'rgba(0,0,0,0.28)');
+    if (p.splash > 0) this.ellipse(p.x, p.y, gz + 0.01, 0.2 + p.splash * 0.5, 0.18 + p.splash * 0.45, null, `rgba(255,255,255,${0.8 * (1 - p.splash)})`);
+    const s = p.sxy, k = p.sz, f = p.facing;
+    const fx = f === ACT.L ? -1 : f === ACT.R ? 1 : 0, fy = f === ACT.F ? 1 : f === ACT.B ? -1 : 0;
+    const cx = p.x, cy = p.y, z0 = gz + p.z;
+    const WHITE = '#f6f5ef', WTOP = '#ffffff', RED = '#e8383d', ORANGE = '#ff9f1c';
+    // feet
+    for (const dx of [-0.11, 0.07]) this.box(cx + dx, cx + dx + 0.07, cy - 0.06, cy + 0.06, z0, z0 + 0.07, ORANGE, undefined, 0.01);
+    const zb = z0 + 0.07;
+    const bw = 0.54 * s, bd = 0.5 * s, bh = 0.4 * k;
+    const bx0 = cx - bw / 2, bx1 = cx + bw / 2, by0 = cy - bd / 2, by1 = cy + bd / 2;
+    // left wing (behind the body in draw order), body, right wing
+    this.box(bx0 - 0.05, bx0, cy - 0.12, cy + 0.12, zb + 0.1 * k, zb + 0.3 * k, '#e2e0d6', undefined, 0.015);
+    this.box(bx0, bx1, by0, by1, zb, zb + bh, WHITE, WTOP, 0.08);
+    this.box(bx1, bx1 + 0.05, cy - 0.12, cy + 0.12, zb + 0.1 * k, zb + 0.3 * k, '#e2e0d6', undefined, 0.015);
+    // head, shifted toward the facing direction
+    const hw = 0.4 * s, hd = 0.36 * s, hh = 0.3 * k;
+    const hx = cx + fx * 0.05, hy = cy + fy * 0.05, hz0 = zb + bh, hz1 = hz0 + hh;
+    const hx0 = hx - hw / 2, hx1 = hx + hw / 2, hy0 = hy - hd / 2, hy1 = hy + hd / 2;
+    const bz0 = hz0 + hh * 0.3, bz1 = hz0 + hh * 0.6;
+    const beak = () => {
+      if (f === ACT.L) this.box(hx0 - 0.11, hx0, hy - 0.05, hy + 0.05, bz0, bz1, ORANGE, undefined, 0.015);
+      else if (f === ACT.R) this.box(hx1, hx1 + 0.11, hy - 0.05, hy + 0.05, bz0, bz1, ORANGE, undefined, 0.015);
+      else if (f === ACT.F) this.box(hx - 0.05, hx + 0.05, hy1, hy1 + 0.11, bz0, bz1, ORANGE, undefined, 0.015);
+      else {
+        this.box(hx - 0.05, hx + 0.05, hy0 - 0.11, hy0, bz0, bz1, ORANGE, undefined, 0.015);
+        this.box(hx - 0.03, hx + 0.03, hy0 - 0.05, hy0, hz0 + 0.02, bz0, RED, undefined, 0.01);   // wattle
+      }
+    };
+    if (f === ACT.F || f === ACT.L) beak();
+    this.box(hx0, hx1, hy0, hy1, hz0, hz1, WHITE, WTOP, 0.07);
+    this.box(hx - 0.05, hx + 0.05, hy - 0.11, hy + 0.11, hz1, hz1 + 0.1 * k, RED, '#ff5a5f', 0.02);   // comb
+    // eyes
+    const eye = '#1b1f27', ez0 = hz0 + hh * 0.55, ez1 = hz0 + hh * 0.78;
+    if (f === ACT.B) {
+      for (const ex of [hx - 0.13, hx + 0.07]) this.quad(ex, hy0 - 0.003, ez0, ex + 0.06, hy0 - 0.003, ez0, ex + 0.06, hy0 - 0.003, ez1, ex, hy0 - 0.003, ez1, eye);
+    } else if (f === ACT.L) {
+      this.quad(hx0 + 0.04, hy0 - 0.003, ez0, hx0 + 0.1, hy0 - 0.003, ez0, hx0 + 0.1, hy0 - 0.003, ez1, hx0 + 0.04, hy0 - 0.003, ez1, eye);
+    } else if (f === ACT.R) {
+      this.quad(hx1 + 0.003, hy - 0.1, ez0, hx1 + 0.003, hy - 0.04, ez0, hx1 + 0.003, hy - 0.04, ez1, hx1 + 0.003, hy - 0.1, ez1, eye);
+      this.quad(hx1 - 0.1, hy0 - 0.003, ez0, hx1 - 0.05, hy0 - 0.003, ez0, hx1 - 0.05, hy0 - 0.003, ez1, hx1 - 0.1, hy0 - 0.003, ez1, eye);
+    }
+    if (f === ACT.B || f === ACT.R || f === ACT.W) beak();
+    ctx.restore();
+  }
+
+  drawDangerZone(eng, yMin) {
+    const cam = eng.cameraBottom();
+    for (let y = yMin; y < cam; y++) {
+      const [xl, xh] = this.colRange(y);
+      const gz = GZ[eng.world.typeOf(y)];
+      this.quad(xl - 0.5, y - 0.5, gz, xh + 0.5, y - 0.5, gz, xh + 0.5, y + 0.5, gz, xl - 0.5, y + 0.5, gz, 'rgba(60,0,20,0.32)');
+    }
+  }
+
+  /** Darken everything outside the playable columns. */
+  drawEdges(yMin, yMax) {
+    const c = this.ctx, a = yMin - 3, b = yMax + 3;
+    for (const [edge, far, alpha] of [[-0.5, -10, 0.34], [CFG.COLS - 0.5, this.W + 10, 0.34], [-1.5, -10, 0.12], [CFG.COLS + 0.5, this.W + 10, 0.12]]) {
+      c.fillStyle = `rgba(8,16,28,${alpha})`;
+      c.beginPath();
+      c.moveTo(this.px(edge, a), this.py(a, 0)); c.lineTo(this.px(edge, b), this.py(b, 0));
+      c.lineTo(far, this.py(b, 0)); c.lineTo(far, this.py(a, 0)); c.closePath(); c.fill();
+    }
+  }
+
+  drawDeadlyCells(vision, world) {
+    for (const [x, y] of vision.cells) {
+      const gz = GZ[world.typeOf(y)] + 0.015;
+      this.quad(x - 0.44, y - 0.44, gz, x + 0.44, y - 0.44, gz, x + 0.44, y + 0.44, gz, x - 0.44, y + 0.44, gz, 'rgba(255,45,70,0.30)');
+    }
+  }
+
+  /**
+   * Live search tree (v3, v4), read from the latest yielded search state.
+   * Cyan: explored paths, drawn additively so dense exploration glows more.
+   * Magenta: the current best path; former best paths fade from magenta back
+   * to cyan. A marker next to the player shows the move the bot leans towards.
+   */
+  drawSearch(sc, world, robot) {
+    const dec = sc.search;
+    if (!dec || sc.searchAlpha <= 0) return;
+    const c = this.ctx;
+    const P = robot
+      ? (x, y) => [this.px(x, y), this.py(y, 0)]
+      : (x, y) => [this.px(x, y), this.py(y, GZ[world.typeOf(y)] + 0.32)];
+    const polyline = pts => {
+      let q = P(pts[0].x, pts[0].y);
+      c.moveTo(q[0], q[1]);
+      for (let i = 1; i < pts.length; i++) { q = P(pts[i].x, pts[i].y); c.lineTo(q[0], q[1]); }
+    };
+    c.save();
+    c.globalAlpha = sc.searchAlpha;
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    if (dec.paths || dec.edges) {
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      c.strokeStyle = robot ? 'rgba(0,245,255,0.42)' : 'rgba(0,245,255,0.36)';
+      c.lineWidth = robot ? 1.3 : 1.5;
+      c.beginPath();
+      if (dec.paths) {
+        for (const path of dec.paths) polyline(path);
+      } else {
+        for (const e of dec.edges) {
+          const a = P(e[0], e[1]), b = P(e[2], e[3]);
+          c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]);
+        }
+      }
+      c.stroke();
+      c.restore();
+    }
+    if (!dec.paths && !dec.edges) { c.restore(); return; }   // v1 / v2: no tree
+
+    // Former best paths: magenta fading back to cyan.
+    for (const g of sc.ghosts) {
+      const k = clamp((sc.now - g.at) / GHOST_FADE_MS, 0, 1);
+      if (k >= 1 || g.path.length < 2) continue;
+      const r = Math.round(lerp(255, 0, k)), gg = Math.round(lerp(0, 245, k)), b = Math.round(lerp(127, 255, k));
+      c.strokeStyle = `rgba(${r},${gg},${b},${0.85 * (1 - k) + 0.25 * k})`;
+      c.lineWidth = lerp(3, 1.4, k);
+      c.beginPath(); polyline(g.path); c.stroke();
+    }
+
+    // Current best path.
+    if (dec.best && dec.best.length > 1) {
+      const pts = dec.best.slice(0, V4_DEPTH + 1).map(s => P(s.x, s.y));
+      for (const [w, col] of [[robot ? 10 : 9, 'rgba(255,0,127,0.28)'], [robot ? 3 : 3.5, COL_MAGENTA]]) {
+        c.strokeStyle = col; c.lineWidth = w;
+        c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+        c.stroke();
+      }
+      c.fillStyle = '#ffd1e8';
+      for (let i = 1; i < pts.length; i++) { c.beginPath(); c.arc(pts[i][0], pts[i][1], 3.2, 0, Math.PI * 2); c.fill(); }
+    }
+    c.restore();
+  }
+
+  /** Small marker on the player: the first action of the current best path. */
+  drawIntent(sc, world, robot) {
+    const dec = sc.search, p = sc.player;
+    if (!dec || !sc.searching || !p || p.dead) return;
+    const c = this.ctx;
+    const z = robot ? 0 : GZ[world.typeOf(Math.round(p.y))] + 0.03;
+    const at = (x, y) => [this.px(x, y), this.py(y, robot ? 0 : z)];
+    const o = at(p.x, p.y);
+    c.save();
+    c.fillStyle = COL_MAGENTA; c.strokeStyle = '#fff'; c.lineWidth = 1.5;
+    if (dec.action === ACT.W) {
+      // "wait": two small bars beside the player
+      const s = this.T * 0.09, q = at(p.x + 0.5, p.y);
+      for (const dx of [-s, s * 0.6]) { c.beginPath(); c.rect(q[0] + dx, q[1] - s * 1.6, s * 0.9, s * 3.2); c.fill(); c.stroke(); }
+    } else {
+      const t = at(p.x + DX[dec.action], p.y + DY[dec.action]);
+      let ux = t[0] - o[0], uy = t[1] - o[1];
+      const len = Math.hypot(ux, uy) || 1; ux /= len; uy /= len;
+      const cx = o[0] + ux * len * 0.58, cy = o[1] + uy * len * 0.58, s = this.T * 0.16;
+      c.beginPath();
+      c.moveTo(cx + ux * s, cy + uy * s);
+      c.lineTo(cx - ux * s * 0.7 - uy * s, cy - uy * s * 0.7 + ux * s);
+      c.lineTo(cx - ux * s * 0.3, cy - uy * s * 0.3);
+      c.lineTo(cx - ux * s * 0.7 + uy * s, cy - uy * s * 0.7 - ux * s);
+      c.closePath(); c.fill(); c.stroke();
+    }
+    c.restore();
+  }
+
+  /* ================= robot renderer (flat debug view) ================= */
+
+  renderRobot(sc) {
+    const c = this.ctx, eng = sc.engine, world = eng.world, T = 0;
+    const [yMin, yMax] = this.setupView(sc, true);
+    c.fillStyle = '#0a0e17';
+    c.fillRect(0, 0, this.W, this.H);
+    const rows = world.stateAt(sc.tau, yMin, yMax, false).rows;
+    const X = x => this.px(x, 0), Yb = y => this.py(y - 0.5, 0), Yt = y => this.py(y + 0.5, 0);
+    const rect = (x0, x1, y0, y1, fill, stroke) => {
+      const sx0 = X(x0), sx1 = X(x1), sy0 = this.py(y1, 0), sy1 = this.py(y0, 0);
+      if (fill) { c.fillStyle = fill; c.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0); }
+      if (stroke) { c.strokeStyle = stroke; c.strokeRect(sx0 + 0.5, sy0 + 0.5, sx1 - sx0 - 1, sy1 - sy0 - 1); }
+    };
+    const L = X(-CFG.EXTRA - 2), R = X(CFG.COLS + CFG.EXTRA + 2);
+
+    for (const r of rows) {
+      const y = r.y, row = r.row;
+      // water without support is deadly
+      if (row.type === 'river') { c.fillStyle = 'rgba(255,59,92,0.13)'; c.fillRect(L, Yt(y), R - L, Yb(y) - Yt(y)); }
+      if (row.type === 'rail' && r.warn && Math.floor(sc.tau * 4) % 2 === 0) {
+        c.fillStyle = 'rgba(255,59,92,0.10)'; c.fillRect(L, Yt(y), R - L, Yb(y) - Yt(y));
+      }
+      if (row.trees) {
+        for (let i = 0; i < row.trees.length; i++) if (row.trees[i]) rect(i - CFG.EXTRA - 0.42, i - CFG.EXTRA + 0.42, y - 0.42, y + 0.42, '#2a3140');
+      }
+      for (const s of r.segs) {
+        if (s.kind === 'log' || s.kind === 'pad') {
+          c.lineWidth = 1;
+          rect(s.lo + 0.03, s.hi - 0.03, y - 0.36, y + 0.36, 'rgba(140,255,190,0.12)', 'rgba(140,255,190,0.35)');
+        } else {
+          // exact hitbox at the displayed time
+          rect(s.lo + CFG.BODY_SHRINK, s.hi - CFG.BODY_SHRINK, y - 0.38, y + 0.38, 'rgba(255,59,92,0.55)');
+        }
+      }
+      // predicted sweep of the current tick (t -> t+1): what the bots treat as deadly
+      if (row.type === 'road' || row.type === 'rail') {
+        const now0 = world.segmentsAt(row, eng.t, -CFG.EXTRA - 4, CFG.COLS + CFG.EXTRA + 4, []);
+        c.setLineDash([4, 3]); c.lineWidth = 1;
+        for (const s of now0) {
+          const lo = Math.min(s.lo, s.lo + s.v) + CFG.BODY_SHRINK, hi = Math.max(s.hi, s.hi + s.v) - CFG.BODY_SHRINK;
+          rect(lo, hi, y - 0.44, y + 0.44, null, 'rgba(255,59,92,0.85)');
+        }
+        c.setLineDash([]);
+      }
+    }
+
+    // logical grid over the playable columns, darker outside
+    c.strokeStyle = 'rgba(255,255,255,0.08)'; c.lineWidth = 1;
+    c.beginPath();
+    for (let x = -0.5; x <= CFG.COLS - 0.5; x++) { c.moveTo(Math.round(X(x)) + 0.5, 0); c.lineTo(Math.round(X(x)) + 0.5, this.H); }
+    for (let y = yMin; y <= yMax; y++) { const sy = Math.round(Yb(y)) + 0.5; c.moveTo(X(-0.5), sy); c.lineTo(X(CFG.COLS - 0.5), sy); }
+    c.stroke();
+    c.fillStyle = 'rgba(0,0,0,0.45)';
+    c.fillRect(0, 0, X(-0.5), this.H);
+    c.fillRect(X(CFG.COLS - 0.5), 0, this.W - X(CFG.COLS - 0.5), this.H);
+
+    // camera death line
+    const cam = eng.cameraBottom(), cy = Yb(cam);
+    c.fillStyle = 'rgba(255,59,92,0.10)'; c.fillRect(0, cy, this.W, this.H - cy);
+    c.strokeStyle = COL_DANGER; c.setLineDash([8, 6]); c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(0, cy); c.lineTo(this.W, cy); c.stroke(); c.setLineDash([]);
+    c.fillStyle = COL_DANGER; c.font = '600 11px ui-monospace, monospace'; c.textBaseline = 'bottom';
+    c.fillText('LIMITE CAMÉRA', X(CFG.COLS - 0.5) + 8, cy - 3);
+
+    this.drawSearch(sc, world, true);
+
+    // player: bright white square with glow, plus its hitbox
+    const p = sc.player;
+    const ps = 0.56 * p.sxy, pyc = p.y;
+    c.save();
+    c.globalAlpha = p.opacity;
+    c.shadowColor = '#ffffff'; c.shadowBlur = 18;
+    rect(p.x - ps / 2, p.x + ps / 2, pyc - ps / 2, pyc + ps / 2, '#ffffff');
+    c.shadowBlur = 0;
+    c.lineWidth = 1;
+    rect(p.x - CFG.HIT_HALF, p.x + CFG.HIT_HALF, pyc - 0.45, pyc + 0.45, null, 'rgba(255,255,255,0.35)');
+    c.restore();
+    this.drawIntent(sc, world, true);
+    void T;
+  }
+
+  drawHud(sc) {
+    const c = this.ctx, eng = sc.engine;
+    const font = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+    c.save();
+    c.textBaseline = 'top'; c.lineJoin = 'round'; c.textAlign = 'left';
+    const big = Math.round(clamp(this.Tg * 1.05, 30, 54));
+    c.font = `800 ${big}px ${font}`;
+    c.lineWidth = 6; c.strokeStyle = 'rgba(10,20,30,0.75)'; c.fillStyle = '#fff';
+    c.strokeText(String(eng.score), 18, 12); c.fillText(String(eng.score), 18, 12);
+    c.font = `700 14px ${font}`; c.lineWidth = 4;
+    const sub = `Meilleur : ${sc.best} · ${sc.modeLabel}`;
+    c.strokeText(sub, 20, 18 + big); c.fillText(sub, 20, 18 + big);
+
+    // view badge
+    c.font = `800 12px ${font}`;
+    const label = VIEW_LABELS[sc.view].toUpperCase();
+    const tw = c.measureText(label).width;
+    let bx = this.W - tw - 34;
+    c.fillStyle = sc.view === 'robot' ? 'rgba(255,0,127,0.85)' : sc.view === 'overlay' ? 'rgba(0,245,255,0.85)' : 'rgba(10,20,30,0.6)';
+    this.roundRect(bx, 14, tw + 20, 26, 7); c.fill();
+    c.fillStyle = sc.view === 'overlay' ? '#04262a' : '#fff'; c.fillText(label, bx + 10, 21);
+    if (sc.paused) {
+      const pw = c.measureText('PAUSE').width;
+      bx -= pw + 30;
+      c.fillStyle = 'rgba(10,20,30,0.75)'; this.roundRect(bx, 14, pw + 20, 26, 7); c.fill();
+      c.fillStyle = '#ffd23f'; c.fillText('PAUSE', bx + 10, 21);
+    }
+    if (sc.view === 'robot') {
+      // legend
+      const items = [[COL_CYAN, 'chemins explorés'], [COL_MAGENTA, 'meilleur chemin'], [COL_DANGER, 'collision / mort'], ['#8cffbe', 'plateforme sûre'], ['#2a3140', 'obstacle']];
+      c.font = `600 11px ${font}`;
+      let ly = this.H - 18 - items.length * 16;
+      c.fillStyle = 'rgba(10,14,23,0.8)'; this.roundRect(12, ly - 8, 150, items.length * 16 + 12, 8); c.fill();
+      for (const [col, txt] of items) {
+        c.fillStyle = col; c.fillRect(22, ly + 1, 10, 10);
+        c.fillStyle = '#b9c7d6'; c.fillText(txt, 40, ly);
+        ly += 16;
+      }
+    }
+    if (eng.dead) {
+      const w = Math.min(360, this.W - 40), h = 132, x = (this.W - w) / 2, y = this.H * 0.32;
+      c.fillStyle = 'rgba(10,18,28,0.88)';
+      this.roundRect(x, y, w, h, 14); c.fill();
+      c.textAlign = 'center';
+      c.fillStyle = '#ff6b6b'; c.font = `800 30px ${font}`; c.fillText('Perdu !', this.W / 2, y + 14);
+      c.fillStyle = '#e7eef5'; c.font = `600 15px ${font}`;
+      c.fillText(`${CAUSE_LABELS[eng.cause] || ''} · Score : ${eng.score}`, this.W / 2, y + 56);
+      c.fillStyle = '#8fa4b9'; c.font = `500 13px ${font}`;
+      c.fillText(sc.isBot ? 'Nouvelle partie dans un instant…' : 'Entrée ou « Rejouer » pour recommencer', this.W / 2, y + 88);
+    }
+    c.restore();
+  }
+
+  roundRect(x, y, w, h, r) {
+    const c = this.ctx;
+    c.beginPath();
+    c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+}
+
+/* =====================================================================
+ * App — UI, main loop, mode and view switching, telemetry, benchmark.
+ *
+ * Bot cadence, one decision per tick, as a small state machine:
+ *   'anim'   the last move plays (hop, traffic) over BOT_ANIM_MS;
+ *   'search' the world is frozen while the search generator is advanced one
+ *            yield at a time, paced so the whole search fills SEARCH_BUDGET_MS
+ *            (both scaled by the speed selector). The views read the latest
+ *            yielded state every frame;
+ *   commit   once the generator is done (plus a short hold so the final path
+ *            can be seen), the first action of the final best path is played
+ *            and the world advances one tick.
+ * Pause freezes the machine. Pas-à-pas advances it by exactly one yield
+ * (or commits the move when the search is complete).
+ * ===================================================================== */
+const HUMAN_TICK_MS = 280;     // idle tick duration for the human player at x1
+const HUMAN_MIN_GAP_MS = 70;   // minimum time between two key-driven ticks
+const BOT_ANIM_MS = 260;       // bot move animation at x1
+const SEARCH_BUDGET_MS = { 1: 140, 2: 140, 3: 420, 4: 450 };   // visible thinking time at x1
+const SEARCH_YIELDS = { 1: 1, 2: 1, 3: Math.ceil(3905 / V3_BATCH), 4: V4_DEPTH };
+const HOLD_MS = 160;           // the final best path stays on screen this long before the move
+const HOP_FRAC = 0.6;          // part of the move animation used by the hop arc
+const RESTART_MS = 1300;       // bots restart automatically after death
+const MODES = [
+  { id: 'player', label: 'Joueur', v: 0 },
+  { id: 'v1', label: 'Bot v1', v: 1 },
+  { id: 'v2', label: 'Bot v2', v: 2 },
+  { id: 'v3', label: 'Bot v3', v: 3 },
+  { id: 'v4', label: 'Bot v4', v: 4 },
+];
+const MODE_INFO = {
+  player: "Vous jouez. Flèches ou ZQSD pour vous déplacer, Espace pour attendre. Le monde avance d'un tick à chaque action, ou tout seul si vous restez immobile.",
+  v1: "Deux actions : Avancer ou Attendre. Simule uniquement t+1 pour « Avancer » et attend sinon. Limites : se fait emporter hors de la carte par les rondins et percuter par des véhicules qu'il aurait pu esquiver.",
+  v2: "Cinq actions. Simule t+1 pour chacune et écarte les coups mortels. Priorité : Avancer, puis Attendre ou un pas latéral (celui qui rapproche du centre), puis Reculer. Sans anticipation, il peut s'enfermer dans des pièges.",
+  v3: "Recherche exhaustive à profondeur 5 : 5^5 = 3125 séquences, sans élagage, parcourues en profondeur par lots de 125 nœuds. Le chemin magenta suit le meilleur candidat trouvé jusqu'ici ; la flèche montre le coup envisagé.",
+  v4: "Recherche en largeur sur 15 ticks avec déduplication des états (x, y, t), un niveau à la fois. Deux chemins qui arrivent au même état ont le même futur : on garde le meilleur. Le chemin magenta saute vers les meilleurs candidats plus profonds.",
+};
+const KEYMAP = {
+  arrowup: ACT.F, z: ACT.F, w: ACT.F,
+  arrowdown: ACT.B, s: ACT.B,
+  arrowleft: ACT.L, q: ACT.L, a: ACT.L,
+  arrowright: ACT.R, d: ACT.R,
+  ' ': ACT.W,
+};
+
+class App {
+  constructor() {
+    this.renderer = new Renderer(document.getElementById('game'));
+    this.bot = new BotController();
+    this.mode = MODES[0];
+    this.view = 'game';
+    this.speed = 1;
+    this.paused = false;
+    this.queued = null;
+    this.newSeedEachGame = true;
+    this.lastFrame = now();
+    this.bench = null;
+    this.bindUI();
+    this.setView('game');
+    this.setMode(MODES[0]);
+    window.addEventListener('resize', () => this.renderer.resize());
+    requestAnimationFrame(() => this.frame());
+  }
+
+  /* ---------- UI wiring ---------- */
+  bindUI() {
+    const $ = id => document.getElementById(id);
+    this.el = {
+      tabs: $('tabs'), views: $('views'), seed: $('seed'), info: $('mode-info'), help: $('help'),
+      pause: $('btn-pause'), newSeed: $('chk-newseed'),
+      tmMode: $('tm-mode'), tmScore: $('tm-score'), tmBest: $('tm-best'), tmTick: $('tm-tick'),
+      tmDepth: $('tm-depth'), tmPaths: $('tm-paths'), tmPruned: $('tm-pruned'), tmMs: $('tm-ms'),
+      tmAction: $('tm-action'), tmCheck: $('tm-check'), tmView: $('tm-view'), tmPhase: $('tm-phase'),
+      benchN: $('bench-n'), benchTicks: $('bench-ticks'), benchRun: $('bench-run'),
+      benchProgress: $('bench-progress'), benchBody: document.querySelector('#bench-table tbody'),
+    };
+    for (const m of MODES) {
+      const b = document.createElement('button');
+      b.textContent = m.label;
+      b.dataset.mode = m.id;
+      b.addEventListener('click', () => { this.setMode(m); b.blur(); });
+      this.el.tabs.appendChild(b);
+    }
+    this.el.views.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { this.setView(b.dataset.view); b.blur(); }));
+    document.querySelectorAll('#speed-row [data-speed]').forEach(b => b.addEventListener('click', () => {
+      this.speed = +b.dataset.speed;
+      document.querySelectorAll('#speed-row [data-speed]').forEach(o => o.classList.toggle('active', o === b));
+      b.blur();
+    }));
+    this.el.pause.addEventListener('click', () => { this.setPaused(!this.paused); this.el.pause.blur(); });
+    $('btn-step').addEventListener('click', e => { this.stepOnce(); e.currentTarget.blur(); });
+    $('btn-replay').addEventListener('click', e => { this.restart(this.readSeed()); e.currentTarget.blur(); });
+    this.el.newSeed.addEventListener('change', () => { this.newSeedEachGame = this.el.newSeed.checked; });
+    this.el.seed.addEventListener('change', () => this.restart(this.readSeed()));
+    this.el.benchRun.addEventListener('click', () => this.runBenchmark());
+
+    window.addEventListener('keydown', e => this.onKey(e));
+    // Touch: swipe to move, tap to go forward.
+    const cv = this.renderer.cv;
+    let ts = null;
+    cv.addEventListener('touchstart', e => { const t = e.changedTouches[0]; ts = [t.clientX, t.clientY]; e.preventDefault(); }, { passive: false });
+    cv.addEventListener('touchend', e => {
+      if (!ts) return;
+      const t = e.changedTouches[0], dx = t.clientX - ts[0], dy = t.clientY - ts[1];
+      ts = null;
+      e.preventDefault();
+      if (this.mode.v !== 0) return;
+      if (this.engine.dead) { this.restart(this.readSeed()); return; }
+      let a = ACT.F;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > 24) a = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? ACT.R : ACT.L) : (dy > 0 ? ACT.B : ACT.F);
+      this.queued = a;
+    }, { passive: false });
+  }
+
+  onKey(e) {
+    const tg = e.target;
+    if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'enter') { this.restart(this.readSeed()); e.preventDefault(); return; }
+    if (k === 'p') { this.setPaused(!this.paused); return; }
+    if (k === 'v') { this.setView(VIEWS[(VIEWS.indexOf(this.view) + 1) % VIEWS.length]); return; }
+    if (this.mode.v !== 0) return;
+    const a = KEYMAP[k];
+    if (a === undefined) return;
+    e.preventDefault();
+    if (this.engine.dead || e.repeat) return;
+    this.queued = a;
+  }
+
+  readSeed() {
+    const v = parseInt(this.el.seed.value, 10);
+    return Number.isFinite(v) && v >= 0 ? v : 1;
+  }
+
+  /** Duration of the move animation (and of the idle tick for the human player). */
+  animMs() { return (this.mode.v === 0 ? HUMAN_TICK_MS : BOT_ANIM_MS) / this.speed; }
+  /** Time between two search yields, so the whole search fills the visible budget. */
+  yieldMs() { return SEARCH_BUDGET_MS[this.mode.v] / SEARCH_YIELDS[this.mode.v] / this.speed; }
+
+  setPaused(p) {
+    this.paused = p;
+    this.el.pause.textContent = p ? 'Reprendre' : 'Pause';
+    this.el.pause.classList.toggle('active', p);
+    if (!p && this.mode.v === 0) this.lastTickAt = now();
+  }
+
+  /** Switching the view never touches the run. */
+  setView(v) {
+    this.view = v;
+    this.el.views.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    this.el.tmView.textContent = VIEW_LABELS[v];
+  }
+
+  /** Switching the game mode restarts the run. */
+  setMode(m) {
+    this.mode = m;
+    this.el.tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === m.id));
+    this.el.info.textContent = MODE_INFO[m.id];
+    this.el.tmMode.textContent = m.label;
+    this.el.help.style.display = m.v === 0 ? '' : 'none';
+    this.restart(this.readSeed());
+  }
+
+  /* ---------- best score (per mode) ---------- */
+  loadBest(id) {
+    try { return parseInt(localStorage.getItem('crossybots.best.' + id) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+  saveBest(id, v) {
+    try { localStorage.setItem('crossybots.best.' + id, String(v)); } catch (e) { /* storage unavailable */ }
+  }
+
+  /* ---------- run lifecycle ---------- */
+  restart(seed) {
+    this.seed = seed >>> 0;
+    this.el.seed.value = this.seed;
+    this.engine = new GameEngine(this.seed);
+    this.queued = null;
+    this.lastTickAt = now();
+    this.deathAt = 0;
+    this.checksOk = 0; this.checksBad = 0;
+    this.best = this.loadBest(this.mode.id);
+    this.snapCam = true;
+    this.resetSearch();
+    this.phase = 'anim';
+    this.phaseLeft = this.animMs();
+    this.computeVision();
+    this.updateTelemetry();
+  }
+
+  resetSearch() {
+    this.gen = null;
+    this.search = null;
+    this.searchDone = false;
+    this.searchCpu = 0;
+    this.ghosts = [];
+  }
+
+  /* ---------- bot state machine ---------- */
+  startSearch() {
+    this.resetSearch();
+    this.phase = 'search';
+    this.gen = this.bot.search(this.engine, this.mode.v, true);
+    this.stepLeft = 0;
+  }
+
+  /** Advance the search generator by one yield (one BFS level / one DFS batch). */
+  searchStep() {
+    if (!this.gen || this.searchDone) return;
+    const prevBest = this.search ? this.search.best : null;
+    const t0 = now();
+    const r = this.gen.next();
+    this.searchCpu += now() - t0;
+    const s = r.value;
+    s.ms = this.searchCpu;
+    // When the best path changes, the old one fades from magenta back to cyan.
+    if (prevBest && s.best !== prevBest && prevBest.length > 1) {
+      this.ghosts.push({ path: prevBest, at: now() });
+      if (this.ghosts.length > 8) this.ghosts.shift();
+    }
+    this.search = s;
+    if (r.done) {
+      this.searchDone = true;
+      this.gen = null;
+      BotController.finalize(this.engine, s, this.mode.v);
+      if (DEBUG) {
+        // The animated search must commit exactly what the one-shot search chooses.
+        const ref = this.bot.decide(this.engine, this.mode.v, false);
+        console.assert(ref.action === s.action, 'Live search differs from full search', ref.action, s.action);
+      }
+      this.stepLeft += HOLD_MS / this.speed;
+    }
+    this.updateTelemetry();
+  }
+
+  /** Play the committed action: the world advances exactly one tick. */
+  commit(t) {
+    const e = this.engine;
+    if (applyDecision(e, this.search)) this.checksOk++; else this.checksBad++;
+    this.afterTick(t);
+    this.ghosts = [];
+    this.phase = 'anim';
+    this.phaseLeft = this.animMs();
+  }
+
+  /** Bot timeline, advanced by the real frame delta unless paused. */
+  updateBot(t, dms) {
+    if (this.phase === 'anim') {
+      this.phaseLeft -= dms;
+      if (this.phaseLeft > 0) return;
+      dms = -this.phaseLeft;                   // the overshoot goes into the search
+      this.startSearch();                      // first yield happens right away
+    }
+    this.stepLeft -= dms;
+    let guard = 64;
+    while (this.stepLeft <= 0 && guard-- > 0) {
+      if (!this.searchDone) { this.searchStep(); this.stepLeft += this.yieldMs(); }
+      else { this.commit(t); return; }
+    }
+  }
+
+  /** Pas-à-pas: one search yield for bots (or the move once the search is complete), one tick for the player. */
+  stepOnce() {
+    this.setPaused(true);
+    if (this.engine.dead) return;
+    const t = now();
+    if (this.mode.v === 0) { this.tick(t); return; }
+    if (this.phase === 'anim') this.startSearch();
+    if (!this.searchDone) {
+      this.searchStep();
+      if (this.searchDone && this.mode.v <= 2) this.commit(t);   // v1 / v2 have no tree to inspect
+    } else this.commit(t);
+  }
+
+  /** Human player: advance one tick with the queued key (or Wait). */
+  tick(t) {
+    const e = this.engine;
+    if (e.dead) return;
+    const a = this.queued === null ? ACT.W : this.queued;
+    this.queued = null;
+    e.step(a);
+    this.afterTick(t);
+  }
+
+  afterTick(t) {
+    const e = this.engine;
+    this.lastTickAt = t;
+    if (e.score > this.best) { this.best = e.score; this.saveBest(this.mode.id, this.best); }
+    if (e.dead) this.deathAt = t;
+    this.computeVision();
+    this.updateTelemetry();
+  }
+
+  /** Deadly cells for the next tick, around the player (overlay view, every mode). */
+  computeVision() {
+    const e = this.engine;
+    if (e.dead) { this.vision = null; return; }
+    const cells = [];
+    for (let y = e.y - 3; y <= e.y + 12; y++) {
+      for (let x = 0; x < CFG.COLS; x++) if (e.sim.cellDeadly(x, y, e.t, e.maxY)) cells.push([x, y]);
+    }
+    this.vision = { cells };
+  }
+
+  updateTelemetry() {
+    const e = this.engine, d = this.search, el = this.el, bot = this.mode.v !== 0;
+    el.tmScore.textContent = e.score;
+    el.tmBest.textContent = this.best;
+    el.tmTick.textContent = e.t;
+    el.tmDepth.textContent = bot ? (d && this.searchDone && d.depthReached < d.depth ? `${d.depth} (atteint ${d.depthReached})` : [0, 1, 1, 5, 15][this.mode.v]) : '—';
+    el.tmPaths.textContent = bot && d ? d.simulated.toLocaleString('fr-FR') : '—';
+    el.tmPruned.textContent = this.mode.v === 4 && d ? `${(100 * d.pruned / Math.max(1, d.generated)).toFixed(1)} % (${d.pruned.toLocaleString('fr-FR')})` : '—';
+    el.tmMs.textContent = bot && d ? `${d.ms.toFixed(2)} ms` : '—';
+    el.tmAction.textContent = bot && d ? ACTION_LABELS[d.action] : '—';
+    el.tmCheck.textContent = bot ? `${this.checksOk} ✔ / ${this.checksBad} ✘` : '—';
+    el.tmPhase.textContent = !bot ? '—' : e.dead ? 'Mort' : this.phase === 'anim' ? 'Déplacement' : this.searchDone ? 'Décision prise' : `Recherche… (profondeur ${d ? d.depthReached : 0})`;
+  }
+
+  /* ---------- animation ---------- */
+  playerVisual(t, animMs) {
+    const e = this.engine;
+    const a = clamp((t - this.lastTickAt) / animMs, 0, 1);
+    const h = e.moved ? clamp(a / HOP_FRAC, 0, 1) : 1;
+    const eh = 1 - (1 - h) * (1 - h);   // ease-out
+    // Hop between cells while riding the log linearly (carry applied over the whole tick).
+    const x = lerp(e.prevX, e.x - e.carry, eh) + e.carry * a;
+    const y = lerp(e.prevY, e.y, eh);
+    let z = 0, sxy = 1, sz = 1, opacity = 1, splash = 0;
+    if (e.moved && h < 1) {
+      z = 4 * h * (1 - h) * 0.46;                    // parabolic arc
+      sz = 1 + 0.2 * Math.sin(Math.PI * h); sxy = 1 - 0.08 * Math.sin(Math.PI * h);   // stretch in the air
+    } else if (e.moved) {
+      const l = clamp((a - HOP_FRAC) / (1 - HOP_FRAC), 0, 1);
+      const sq = clamp(l * 2, 0, 1), bo = clamp(l * 2 - 1, 0, 1);
+      sz = 1 - 0.3 * Math.sin(Math.PI * sq) + 0.06 * Math.sin(Math.PI * bo);   // squash, then...
+      sxy = 1 + 0.14 * Math.sin(Math.PI * sq);
+      z = 0.07 * Math.sin(Math.PI * bo);                                       // ...a small bounce
+    }
+    if (e.dead && h >= 1) {
+      const k = clamp((t - this.deathAt) / 450, 0, 1);
+      if (e.cause === 'vehicle' || e.cause === 'train') { sz = 0.18; sxy = 1.4; z = 0; }
+      else if (e.cause === 'water') { z = -0.55 * k; opacity = 1 - k; splash = k; }
+      else { opacity = 1 - 0.7 * k; }
+    }
+    return { x, y, z, sxy, sz, opacity, splash, row: e.y, facing: e.facing, dead: e.dead };
+  }
+
+  frame() {
+    const t = now();
+    const dms = Math.min(100, t - this.lastFrame);
+    this.lastFrame = t;
+    const e = this.engine;
+    if (!this.paused && !e.dead) {
+      if (this.mode.v === 0) {
+        if (this.queued !== null && t - this.lastTickAt >= HUMAN_MIN_GAP_MS) this.tick(t);
+        else if (t - this.lastTickAt >= this.animMs()) this.tick(t);
+      } else this.updateBot(t, dms);
+    } else if (e.dead && this.mode.v !== 0 && !this.paused && t - this.deathAt >= RESTART_MS / Math.sqrt(this.speed)) {
+      this.restart(this.newSeedEachGame ? this.seed + 1 : this.seed);
+    }
+    this.renderer.render(this.scene(t, dms / 1000));
+    this.snapCam = false;
+    requestAnimationFrame(() => this.frame());
+  }
+
+  scene(t, dt) {
+    const eng = this.engine, animMs = this.animMs();
+    const raw = (t - this.lastTickAt) / animMs;
+    // World time: interpolate during the move, then hold still while the bot thinks;
+    // after death the traffic keeps moving.
+    const tau = eng.t - 1 + (eng.dead && !this.paused ? raw : Math.min(1, raw));
+    const bot = this.mode.v !== 0;
+    // While the committed move plays, the finished tree fades out.
+    const searchAlpha = !bot || !this.search ? 0 : this.phase === 'search' ? 1 : clamp(1 - raw * 1.6, 0, 1);
+    return {
+      engine: eng, tau, dt, now: t, snapCam: this.snapCam, view: this.view,
+      player: this.playerVisual(t, animMs),
+      vision: this.vision, search: this.search, ghosts: this.ghosts, searchAlpha,
+      searching: bot && this.phase === 'search' && !eng.dead,
+      best: this.best, modeLabel: this.mode.label, paused: this.paused, isBot: bot,
+    };
+  }
+
+  /* ---------- benchmark (time-sliced so the page stays responsive) ---------- */
+  runBenchmark() {
+    if (this.bench) return;
+    const n = clamp(parseInt(this.el.benchN.value, 10) || 8, 1, 50);
+    const maxTicks = clamp(parseInt(this.el.benchTicks.value, 10) || 800, 50, 5000);
+    const jobs = [];
+    for (let v = 1; v <= 4; v++) for (let s = 1; s <= n; s++) jobs.push({ v, seed: s });
+    const results = { 1: [], 2: [], 3: [], 4: [] };
+    const bot = new BotController();
+    let j = 0, eng = null;
+    this.bench = true;
+    this.el.benchRun.disabled = true;
+    this.el.benchBody.innerHTML = '';
+    const finish = () => {
+      const rows = [1, 2, 3, 4].map(v => summarize(v, results[v]));
+      this.el.benchBody.innerHTML = rows.map(r =>
+        `<tr><td>Bot ${r.bot}</td><td>${r.scoreMoyen.toLocaleString('fr-FR')}</td><td>${r.morts} / ${n}</td><td>${r.ticksMoyens}</td><td>${r.scoreMax}</td></tr>`).join('');
+      const bad = rows.reduce((s, r) => s + r.ecartsPrediction, 0);
+      this.el.benchProgress.textContent = `Terminé : ${n} parties par bot, ${maxTicks} ticks max. Écarts de prédiction : ${bad}.`;
+      console.log("Banc d'essai Crossy Bots");
+      console.table(rows);
+      this.bench = null;
+      this.el.benchRun.disabled = false;
+    };
+    const slice = () => {
+      const t0 = now();
+      while (now() - t0 < 22) {
+        if (!eng) {
+          if (j >= jobs.length) { finish(); return; }
+          eng = new GameEngine(jobs[j].seed);
+          eng.mismatches = 0;
+        }
+        const d = bot.decide(eng, jobs[j].v, false);
+        if (!applyDecision(eng, d)) eng.mismatches++;
+        if (eng.dead || eng.t >= maxTicks) {
+          results[jobs[j].v].push({ score: eng.score, dead: eng.dead, ticks: eng.t, mismatches: eng.mismatches });
+          eng = null;
+          j++;
+          this.el.benchProgress.textContent = `Partie ${j} / ${jobs.length} (Bot v${jobs[Math.min(j, jobs.length - 1)].v})…`;
+        }
+      }
+      setTimeout(slice, 0);
+    };
+    slice();
+  }
+}
+
+/* ---------- boot ---------- */
+if (typeof document !== 'undefined') {
+  window.crossyBots = { World, Simulator, GameEngine, BotController, runGame, runBenchmarkSync, CFG };
+  window.app = new App();
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { World, Simulator, GameEngine, BotController, runGame, runBenchmarkSync, CFG, ACT };
+}
+</script>
+</body>
+</html>
