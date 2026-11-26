@@ -2,7 +2,7 @@
 
 A Crossy Road-style game in a single self-contained HTML file, with a human mode and four bots that evolve from naive to advanced. The UI is in French.
 
-**Play it online: https://lawl1et-1.github.io/crossy-bots/**
+**Play it online: https://crossy-bots.vercel.app**
 
 Or open `crossy-bots.html` in a modern browser. No build step and no dependencies.
 
